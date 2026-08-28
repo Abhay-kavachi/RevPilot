@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RevPilot Merchant Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <header class="flex justify-between items-center border-b pb-4">
+            <h1 class="text-3xl font-bold tracking-tight">RevPilot Merchant Console</h1>
+            <button onclick="refreshData()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">Refresh Data</button>
+        </header>
+
+        <!-- Executive Dashboard -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4">Executive Dashboard</h2>
+            <div class="grid grid-cols-4 gap-4" id="stats-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Revenue at Risk Queue -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4">Revenue-at-Risk Queue</h2>
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Case ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount (INR)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attempts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queue-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Case Detail / Audit -->
+        <section class="grid grid-cols-2 gap-8">
+            <div>
+                <h2 class="text-xl font-semibold mb-4">Decision Trace</h2>
+                <div id="decisions-body" class="bg-white shadow rounded p-4 space-y-4">
+                    <p class="text-gray-500 text-sm">Select a case to view decisions.</p>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-xl font-semibold mb-4">Audit Timeline</h2>
+                <div id="audit-body" class="bg-white shadow rounded p-4 space-y-4">
+                    <p class="text-gray-500 text-sm">Select a case to view audit timeline.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8000/api";
+
+        async function refreshData() {
+            try {
+                // 1. Fetch Stats
+                const statsRes = await fetch(`${API_BASE}/dashboard/stats`);
+                const stats = await statsRes.json();
+                
+                document.getElementById('stats-grid').innerHTML = `
+                    <div class="bg-white p-4 rounded shadow">
+                        <div class="text-sm text-gray-500">Total Cases</div>
+                        <div class="text-2xl font-bold">${stats.total_cases}</div>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <div class="text-sm text-gray-500">Recovered</div>
+                        <div class="text-2xl font-bold text-green-600">${stats.recovered_cases}</div>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <div class="text-sm text-gray-500">At Risk (INR)</div>
+                        <div class="text-2xl font-bold text-red-600">₹${(stats.total_at_risk/100).toFixed(2)}</div>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <div class="text-sm text-gray-500">Recovered (INR)</div>
+                        <div class="text-2xl font-bold text-green-600">₹${(stats.total_recovered/100).toFixed(2)}</div>
+                    </div>
+                `;
+
+                // 2. Fetch Cases
+                const casesRes = await fetch(`${API_BASE}/cases`);
+                const cases = await casesRes.json();
+                
+                let queueHtml = '';
+                cases.forEach(c => {
+                    let statusColor = c.status === 'RECOVERED' ? 'text-green-600 bg-green-100' : 
+                                      c.status === 'STOPPED' ? 'text-red-600 bg-red-100' : 
+                                      'text-yellow-800 bg-yellow-100';
+                    queueHtml += `
+                        <tr class="hover:bg-gray-50 cursor-pointer transition" onclick="loadCaseDetail('${c.id}')">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.case_type}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹${(c.amount_at_risk/100).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${c.status}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.attempt_count}/${c.max_attempts}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('queue-body').innerHTML = queueHtml;
+                
+            } catch (err) {
+                console.error("Error refreshing data:", err);
+            }
+        }
+
+        async function loadCaseDetail(caseId) {
+            try {
+                // Fetch Decisions
+                const decRes = await fetch(`${API_BASE}/cases/${caseId}/decisions`);
+                const decisions = await decRes.json();
+                let decHtml = decisions.map(d => `
+                    <div class="border-l-4 ${d.is_selected ? 'border-green-500 bg-green-50' : 'border-gray-200'} pl-4 py-2">
+                        <div class="font-semibold text-sm">${d.action_type} ${d.is_selected ? '✅ SELECTED' : ''}</div>
+                        <div class="text-xs text-gray-600 grid grid-cols-2 gap-1 mt-1">
+                            <div>ENR: ₹${(d.final_enr/100).toFixed(2)}</div>
+                            <div>EV: ₹${(d.expected_value/100).toFixed(2)}</div>
+                            <div>Prob: ${(d.success_probability*100).toFixed(1)}%</div>
+                            <div>Cost/Fric/Risk: ₹${((d.cost+d.friction+d.risk)/100).toFixed(2)}</div>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('decisions-body').innerHTML = decHtml || '<p class="text-gray-500 text-sm">No decisions found.</p>';
+
+                // Fetch Audit
+                const audRes = await fetch(`${API_BASE}/cases/${caseId}/audit`);
+                const audits = await audRes.json();
+                let audHtml = audits.map(a => `
+                    <div class="flex items-start mb-4">
+                        <div class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-3 mt-0.5 whitespace-nowrap">${new Date(a.created_at).toLocaleTimeString()}</div>
+                        <div>
+                            <div class="text-sm font-semibold text-gray-900">${a.event_type}</div>
+                            <div class="text-sm text-gray-600">${a.description}</div>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('audit-body').innerHTML = audHtml || '<p class="text-gray-500 text-sm">No audit logs found.</p>';
+
+            } catch (err) {
+                console.error("Error loading case detail:", err);
+            }
+        }
+
+        // Init
+        refreshData();
+    </script>
+</body>
+</html>
