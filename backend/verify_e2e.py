@@ -4,7 +4,7 @@ from app.models.domain import RevenueRiskCase, WebhookEvent, AuditEvent
 
 def check():
     db = SessionLocal()
-    case_id = "8beee88e-eee3-4a70-abb6-2064199b8c9e"
+    case_id = "91f9382f-b969-40ad-b7d1-556f482cc8a0"
     
     case = db.query(RevenueRiskCase).get(case_id)
     if not case:
