@@ -57,7 +57,7 @@ def test_invalid_state_transition(db):
     db.commit()
     
     # Attempt illegal transition
-    with pytest.raises(ValueError, match="Invalid state transition"):
+    with pytest.raises(ValueError, match="INVALID_STATE_TRANSITION"):
         case.transition_to(CaseStatus.EXECUTING)
 
 # ---------------------------------------------------------

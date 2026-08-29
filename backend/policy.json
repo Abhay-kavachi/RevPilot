@@ -1,0 +1,64 @@
+{
+  "economic_policy": {
+    "version": "1.0.0",
+    "base_probabilities": {
+      "CREATE_PAYMENT_LINK": 0.65,
+      "RETRY_PAYMENT": 0.50,
+      "SEND_REMINDER": 0.35,
+      "ESCALATE_TO_SUPPORT": 0.10,
+      "NO_ACTION": 0.0
+    },
+    "failure_reason_multipliers": {
+      "insufficient_funds": 0.8,
+      "authentication_failed": 0.5,
+      "network_error": 1.2
+    },
+    "attempt_adjustments": [
+      { "attempt_count": 0, "multiplier": 1.0 },
+      { "attempt_count": 1, "multiplier": 0.8 },
+      { "attempt_count": 2, "multiplier": 0.5 },
+      { "attempt_count": 3, "multiplier": 0.2 }
+    ],
+    "age_adjustments": [
+      { "max_days": 1, "multiplier": 1.0 },
+      { "max_days": 3, "multiplier": 0.8 },
+      { "max_days": 7, "multiplier": 0.5 },
+      { "max_days": 30, "multiplier": 0.2 },
+      { "max_days": 9999, "multiplier": 0.05 }
+    ],
+    "action_costs": {
+      "CREATE_PAYMENT_LINK": 2.50,
+      "RETRY_PAYMENT": 1.00,
+      "SEND_REMINDER": 0.50,
+      "ESCALATE_TO_SUPPORT": 50.00,
+      "NO_ACTION": 0.0
+    },
+    "action_frictions": {
+      "CREATE_PAYMENT_LINK": 5.00,
+      "RETRY_PAYMENT": 0.00,
+      "SEND_REMINDER": 2.00,
+      "ESCALATE_TO_SUPPORT": 20.00,
+      "NO_ACTION": 0.0
+    },
+    "action_risks": {
+      "CREATE_PAYMENT_LINK": 0.00,
+      "RETRY_PAYMENT": 5.00,
+      "SEND_REMINDER": 0.00,
+      "ESCALATE_TO_SUPPORT": 0.00,
+      "NO_ACTION": 0.0
+    }
+  },
+  "recovery_policy": {
+    "version": "1.0.0",
+    "max_attempts": 3,
+    "min_expected_value": 0.0,
+    "allowed_actions": [
+      "CREATE_PAYMENT_LINK",
+      "RETRY_PAYMENT",
+      "SEND_REMINDER",
+      "ESCALATE_TO_SUPPORT",
+      "NO_ACTION"
+    ],
+    "stop_threshold": 0.0
+  }
+}

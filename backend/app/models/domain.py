@@ -4,6 +4,9 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 from app.database.core import Base
+from app.core.config import settings
+
+L = settings.limits
 
 class CaseStatus(str, enum.Enum):
     OPEN = "OPEN"
@@ -16,12 +19,13 @@ class CaseStatus(str, enum.Enum):
 class RevenueRiskCase(Base):
     __tablename__ = "revenue_risk_cases"
     
-    id = Column(String(50), primary_key=True, index=True)
-    customer_id = Column(String(50), index=True)
-    customer_email = Column(String(255))
-    customer_phone = Column(String(50))
-    currency = Column(String(3), default="INR")
-    case_type = Column(String(50), nullable=False) 
+    id = Column(String(L.ID_MAX_LENGTH), primary_key=True, index=True)
+    merchant_id = Column(String(L.ID_MAX_LENGTH), index=True, nullable=True) # Supports multi-tenancy
+    customer_id = Column(String(L.ID_MAX_LENGTH), index=True)
+    customer_email = Column(String(L.EMAIL_MAX_LENGTH))
+    customer_phone = Column(String(L.PHONE_MAX_LENGTH))
+    currency = Column(String(L.CURRENCY_MAX_LENGTH), default="INR")
+    case_type = Column(String(L.ID_MAX_LENGTH), nullable=False) 
     status = Column(SQLEnum(CaseStatus), default=CaseStatus.OPEN)
     
     amount_at_risk = Column(BigInteger, nullable=False) # In paise
@@ -54,20 +58,21 @@ class RevenueRiskCase(Base):
             CaseStatus.STOPPED: []
         }
         if new_status not in valid_transitions[self.status]:
-            raise ValueError(f"Invalid state transition from {self.status} to {new_status}")
+            from app.core.errors import ErrorCode
+            raise ValueError(f"{ErrorCode.INVALID_STATE_TRANSITION}: from {self.status} to {new_status}")
         self.status = new_status
 
 class CaseAction(Base):
     __tablename__ = "case_actions"
     
-    id = Column(String(50), primary_key=True)
-    case_id = Column(String(50), ForeignKey("revenue_risk_cases.id"), nullable=False)
-    action_type = Column(String(50), nullable=False)
+    id = Column(String(L.ID_MAX_LENGTH), primary_key=True)
+    case_id = Column(String(L.ID_MAX_LENGTH), ForeignKey("revenue_risk_cases.id"), nullable=False)
+    action_type = Column(String(L.ID_MAX_LENGTH), nullable=False)
     
-    idempotency_key = Column(String(100), unique=True)
-    status = Column(String(50), default="PENDING") 
+    idempotency_key = Column(String(L.REFERENCE_MAX_LENGTH), unique=True)
+    status = Column(String(L.ID_MAX_LENGTH), default="PENDING") 
     
-    provider_reference_id = Column(String(100))
+    provider_reference_id = Column(String(L.REFERENCE_MAX_LENGTH))
     execution_result = Column(JSON)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -78,10 +83,10 @@ class CaseAction(Base):
 class CaseDecision(Base):
     __tablename__ = "case_decisions"
     
-    id = Column(String(50), primary_key=True)
-    case_id = Column(String(50), ForeignKey("revenue_risk_cases.id"), nullable=False)
+    id = Column(String(L.ID_MAX_LENGTH), primary_key=True)
+    case_id = Column(String(L.ID_MAX_LENGTH), ForeignKey("revenue_risk_cases.id"), nullable=False)
     
-    action_type = Column(String(50), nullable=False)
+    action_type = Column(String(L.ID_MAX_LENGTH), nullable=False)
     expected_value = Column(BigInteger, nullable=False)
     success_probability = Column(Float, nullable=False)
     cost = Column(BigInteger, nullable=False)
@@ -90,7 +95,7 @@ class CaseDecision(Base):
     final_enr = Column(BigInteger, nullable=False)
     
     is_selected = Column(Boolean, default=False)
-    policy_rejection_reason = Column(String(255))
+    policy_rejection_reason = Column(String(L.EMAIL_MAX_LENGTH))
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -106,11 +111,11 @@ class CaseDecision(Base):
 class Approval(Base):
     __tablename__ = "approvals"
     
-    id = Column(String(50), primary_key=True)
-    action_id = Column(String(50), ForeignKey("case_actions.id"), nullable=False)
-    status = Column(String(50), default="PENDING") 
-    reviewer_id = Column(String(50))
-    comments = Column(String(1000))
+    id = Column(String(L.ID_MAX_LENGTH), primary_key=True)
+    action_id = Column(String(L.ID_MAX_LENGTH), ForeignKey("case_actions.id"), nullable=False)
+    status = Column(String(L.ID_MAX_LENGTH), default="PENDING") 
+    reviewer_id = Column(String(L.ID_MAX_LENGTH))
+    comments = Column(String(L.DESCRIPTION_MAX_LENGTH))
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     resolved_at = Column(DateTime(timezone=True))
@@ -120,8 +125,8 @@ class Approval(Base):
 class WebhookEvent(Base):
     __tablename__ = "webhook_events"
     
-    event_id = Column(String(100), primary_key=True) 
-    event_type = Column(String(100), nullable=False)
+    event_id = Column(String(L.REFERENCE_MAX_LENGTH), primary_key=True) 
+    event_type = Column(String(L.REFERENCE_MAX_LENGTH), nullable=False)
     payload = Column(JSON, nullable=False)
     processed = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -130,9 +135,9 @@ class AuditEvent(Base):
     __tablename__ = "audit_events"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    case_id = Column(String(50), ForeignKey("revenue_risk_cases.id"))
-    event_type = Column(String(100), nullable=False)
-    description = Column(String(1000))
+    case_id = Column(String(L.ID_MAX_LENGTH), ForeignKey("revenue_risk_cases.id"))
+    event_type = Column(String(L.REFERENCE_MAX_LENGTH), nullable=False)
+    description = Column(String(L.DESCRIPTION_MAX_LENGTH))
     metadata_blob = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -141,9 +146,9 @@ class AuditEvent(Base):
 class PaymentReference(Base):
     __tablename__ = "payment_references"
     
-    id = Column(String(50), primary_key=True)
-    case_id = Column(String(50), ForeignKey("revenue_risk_cases.id"), nullable=False)
-    reference_type = Column(String(50), nullable=False) 
-    reference_id = Column(String(100), nullable=False, unique=True)
-    status = Column(String(50))
+    id = Column(String(L.ID_MAX_LENGTH), primary_key=True)
+    case_id = Column(String(L.ID_MAX_LENGTH), ForeignKey("revenue_risk_cases.id"), nullable=False)
+    reference_type = Column(String(L.ID_MAX_LENGTH), nullable=False) 
+    reference_id = Column(String(L.REFERENCE_MAX_LENGTH), nullable=False, unique=True)
+    status = Column(String(L.ID_MAX_LENGTH))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

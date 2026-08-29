@@ -44,7 +44,7 @@ class AgentMemory:
             action_history=history,
             is_recoverable=is_recoverable,
             days_since_creation=max(0, age_days),
-            failure_reason="DECLINED_BY_BANK" # Mocked for now; ideally parsed from webhook details
+            failure_reason=getattr(case, "failure_reason", "unknown")
         )
 
     def record_decisions(self, case_id: str, evaluations: list, selected_action_type: str):

@@ -7,8 +7,9 @@ from app.api.endpoints import router as api_router
 from app.agent.worker import AgentWorker
 import asyncio
 from contextlib import asynccontextmanager
+from app.core.config import settings
 
-worker = AgentWorker(poll_interval=5)
+worker = AgentWorker(poll_interval=settings.WORKER_POLL_INTERVAL)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -27,7 +27,7 @@ def test_negative_ev_stops_immediately(db):
     
     case = RevenueRiskCase(
         id=case_id,
-        amount_at_risk=100, # 1 INR
+        amount_at_risk=2, # Force negative EV to test STOPPED
         currency="INR",
         case_type="FAILED_PAYMENT",
         status=CaseStatus.OPEN

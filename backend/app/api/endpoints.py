@@ -29,38 +29,58 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 READ_ROLES = [UserRole.ADMIN, UserRole.OPERATOR, UserRole.ANALYST, UserRole.VIEWER]
 # Manual actions would require OPERATOR or ADMIN (e.g., if we had a POST /cases/{id}/act)
 
+from app.core.config import settings
+
+P = settings.pagination
+
 @router.get("/cases")
 def list_cases(
     skip: int = Query(0, ge=0), 
-    limit: int = Query(50, ge=1, le=100), 
+    limit: int = Query(P.DEFAULT_PAGE_SIZE, ge=1, le=P.MAX_PAGE_SIZE), 
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(READ_ROLES))
 ):
-    cases = db.query(RevenueRiskCase).order_by(RevenueRiskCase.created_at.desc()).offset(skip).limit(limit).all()
+    query = db.query(RevenueRiskCase)
+    if current_user.merchant_id:
+        query = query.filter(RevenueRiskCase.merchant_id == current_user.merchant_id)
+        
+    cases = query.order_by(RevenueRiskCase.created_at.desc()).offset(skip).limit(limit).all()
     return cases
 
 @router.get("/cases/{case_id}")
 def get_case(case_id: str, db: Session = Depends(get_db), current_user: User = Depends(require_role(READ_ROLES))):
-    case = db.query(RevenueRiskCase).filter(RevenueRiskCase.id == case_id).first()
+    query = db.query(RevenueRiskCase).filter(RevenueRiskCase.id == case_id)
+    if current_user.merchant_id:
+        query = query.filter(RevenueRiskCase.merchant_id == current_user.merchant_id)
+        
+    case = query.first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
 @router.get("/cases/{case_id}/audit")
 def get_case_audit(case_id: str, db: Session = Depends(get_db), current_user: User = Depends(require_role(READ_ROLES))):
+    # IDOR Check via get_case
+    get_case(case_id, db, current_user)
     return db.query(AuditEvent).filter(AuditEvent.case_id == case_id).order_by(AuditEvent.created_at.desc()).all()
 
 @router.get("/cases/{case_id}/decisions")
 def get_case_decisions(case_id: str, db: Session = Depends(get_db), current_user: User = Depends(require_role(READ_ROLES))):
+    # IDOR Check via get_case
+    get_case(case_id, db, current_user)
     return db.query(CaseDecision).filter(CaseDecision.case_id == case_id).order_by(CaseDecision.created_at.desc()).all()
 
 @router.get("/dashboard/stats")
 def get_dashboard_stats(db: Session = Depends(get_db), current_user: User = Depends(require_role(READ_ROLES))):
-    total_cases = db.query(func.count(RevenueRiskCase.id)).scalar()
-    recovered_cases = db.query(func.count(RevenueRiskCase.id)).filter(RevenueRiskCase.status == CaseStatus.RECOVERED).scalar()
+    query_cases = db.query(RevenueRiskCase)
+    if current_user.merchant_id:
+        query_cases = query_cases.filter(RevenueRiskCase.merchant_id == current_user.merchant_id)
+        
+    total_cases = query_cases.with_entities(func.count(RevenueRiskCase.id)).scalar()
+    recovered_cases = query_cases.filter(RevenueRiskCase.status == CaseStatus.RECOVERED).with_entities(func.count(RevenueRiskCase.id)).scalar()
     
-    total_at_risk = db.query(func.sum(RevenueRiskCase.amount_at_risk)).scalar() or 0
-    total_recovered = db.query(func.sum(RevenueRiskCase.amount_at_risk)).filter(RevenueRiskCase.status == CaseStatus.RECOVERED).scalar() or 0
+    total_at_risk = query_cases.with_entities(func.sum(RevenueRiskCase.amount_at_risk)).scalar() or 0
+    total_recovered = query_cases.filter(RevenueRiskCase.status == CaseStatus.RECOVERED).with_entities(func.sum(RevenueRiskCase.amount_at_risk)).scalar() or 0
     
     return {
         "total_cases": total_cases,

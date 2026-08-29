@@ -4,12 +4,13 @@ from sqlalchemy.orm import Session
 from app.database.core import SessionLocal
 from app.models.domain import RevenueRiskCase, CaseStatus
 from app.agent.agent import RevPilotAgent
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 class AgentWorker:
-    def __init__(self, poll_interval: int = 5):
-        self.poll_interval = poll_interval
+    def __init__(self, poll_interval: int = None):
+        self.poll_interval = poll_interval or settings.WORKER_POLL_INTERVAL
         self._running = False
         
     async def start(self):
