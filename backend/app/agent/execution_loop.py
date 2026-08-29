@@ -20,6 +20,7 @@ class ExecutionLoop:
         
         if not context.is_recoverable:
             print(f"Case {case_id} is no longer recoverable. Current status: {context.status}")
+            self.db.rollback()
             return
             
         # Update state to ASSESSING
@@ -44,7 +45,9 @@ class ExecutionLoop:
         self.memory.update_case_status(case_id, CaseStatus.EXECUTING)
         
         # Dispatch action
-        idempotency_key = f"case_{case_id}_action_{selected_action}_attempt_{context.attempt_count}"
+        import hashlib
+        raw_idem_key = f"case_{case_id}_action_{selected_action}_attempt_{context.attempt_count}"
+        idempotency_key = hashlib.md5(raw_idem_key.encode()).hexdigest()
         
         provider_ref = None
         if selected_action in ["CREATE_PAYMENT_LINK", "RETRY_PAYMENT_OPPORTUNITY"]:

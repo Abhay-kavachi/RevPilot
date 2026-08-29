@@ -3,18 +3,25 @@ import httpx
 import time
 from typing import Dict, Any, Tuple
 
+from app.core.config import settings
+
 class RazorpayAdapter:
     def __init__(self):
-        self.key_id = os.getenv("RAZORPAY_KEY_ID", "rzp_test_mock")
-        self.key_secret = os.getenv("RAZORPAY_KEY_SECRET", "mock_secret")
-        self.base_url = "https://api.razorpay.com/v1"
+        self.key_id = settings.razorpay.KEY_ID
+        self.key_secret = settings.razorpay.KEY_SECRET
+        self.base_url = settings.razorpay.API_BASE_URL
         self.auth = (self.key_id, self.key_secret)
+        self.timeouts = httpx.Timeout(
+            connect=settings.razorpay.TIMEOUT_CONNECT,
+            read=settings.razorpay.TIMEOUT_READ,
+            write=settings.razorpay.TIMEOUT_WRITE,
+            pool=5.0
+        )
         
     def _post(self, path: str, json_data: dict) -> Tuple[bool, dict]:
         url = f"{self.base_url}{path}"
         try:
-            # Simple HTTPX request (blocking for MVP, though async httpx could be used)
-            response = httpx.post(url, json=json_data, auth=self.auth, timeout=10.0)
+            response = httpx.post(url, json=json_data, auth=self.auth, timeout=self.timeouts)
             data = response.json()
             if response.status_code == 400 and "error" in data and "description" in data["error"]:
                 # If duplicate idempotency key (receipt/reference_id), razorpay throws 400 with specific text

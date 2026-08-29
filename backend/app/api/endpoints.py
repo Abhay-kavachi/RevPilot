@@ -80,7 +80,7 @@ def get_dashboard_stats(db: Session = Depends(get_db), current_user: User = Depe
     recovered_cases = query_cases.filter(RevenueRiskCase.status == CaseStatus.RECOVERED).with_entities(func.count(RevenueRiskCase.id)).scalar()
     
     total_at_risk = query_cases.with_entities(func.sum(RevenueRiskCase.amount_at_risk)).scalar() or 0
-    total_recovered = query_cases.filter(RevenueRiskCase.status == CaseStatus.RECOVERED).with_entities(func.sum(RevenueRiskCase.amount_at_risk)).scalar() or 0
+    total_recovered = query_cases.filter(RevenueRiskCase.status == CaseStatus.RECOVERED).with_entities(func.sum(RevenueRiskCase.amount_recovered)).scalar() or 0
     
     return {
         "total_cases": total_cases,

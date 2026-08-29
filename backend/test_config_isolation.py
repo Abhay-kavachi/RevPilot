@@ -30,6 +30,10 @@ def test_production_config_isolation_jwt():
             os.rename(".env.testbak", env_path)
 
 def test_production_config_isolation_razorpay():
+    old_id = os.environ.get("RAZORPAY_KEY_ID")
+    old_secret = os.environ.get("RAZORPAY_KEY_SECRET")
+    old_webhook = os.environ.get("RAZORPAY_WEBHOOK_SECRET")
+    
     if "RAZORPAY_KEY_ID" in os.environ:
         del os.environ["RAZORPAY_KEY_ID"]
     if "RAZORPAY_KEY_SECRET" in os.environ:
@@ -54,3 +58,9 @@ def test_production_config_isolation_razorpay():
     finally:
         if env_exists:
             os.rename(".env.testbak", env_path)
+        if old_id is not None:
+            os.environ["RAZORPAY_KEY_ID"] = old_id
+        if old_secret is not None:
+            os.environ["RAZORPAY_KEY_SECRET"] = old_secret
+        if old_webhook is not None:
+            os.environ["RAZORPAY_WEBHOOK_SECRET"] = old_webhook

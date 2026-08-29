@@ -8,7 +8,7 @@ class AgentMemory:
         self.db = db
 
     def build_context(self, case_id: str) -> AgentContext:
-        case = self.db.query(RevenueRiskCase).filter(RevenueRiskCase.id == case_id).first()
+        case = self.db.query(RevenueRiskCase).with_for_update().filter(RevenueRiskCase.id == case_id).first()
         if not case:
             raise ValueError(f"Case {case_id} not found")
             
@@ -31,7 +31,7 @@ class AgentMemory:
             
         age_days = (now - created_at_utc).days if created_at_utc else 0
         
-        is_recoverable = case.status not in [CaseStatus.RECOVERED, CaseStatus.STOPPED]
+        is_recoverable = case.status == CaseStatus.OPEN
             
         return AgentContext(
             case_id=case.id,
