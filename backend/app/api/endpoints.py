@@ -113,7 +113,7 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "ok", "message": "duplicate event"}
     
     # Process event
-    if event_type == 'payment_link.paid':
+    if event_type in ['payment_link.paid', 'payment_link.partially_paid']:
         ref_id = payload.get("payload", {}).get("payment_link", {}).get("entity", {}).get("reference_id")
         amount_paid = payload.get("payload", {}).get("payment_link", {}).get("entity", {}).get("amount_paid")
         

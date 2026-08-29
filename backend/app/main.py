@@ -32,6 +32,16 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api")
 
+# The user configured the webhook to point to /webhook/razorpay, 
+# so we add an alias router here for convenience.
+from app.api.endpoints import razorpay_webhook, get_db
+from fastapi import Request, Depends
+from sqlalchemy.orm import Session
+
+@app.post("/webhook/razorpay")
+async def root_razorpay_webhook(request: Request, db: Session = Depends(get_db)):
+    return await razorpay_webhook(request, db)
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
