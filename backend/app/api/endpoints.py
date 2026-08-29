@@ -101,9 +101,13 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
         
     payload = json.loads(raw_body)
     event_type = payload.get("event")
-    event_id = request.headers.get("X-Razorpay-Event-Id") or payload.get("id", "unknown_event")
+    
+    # 1. P1: Missing Webhook Event ID
+    event_id = request.headers.get("X-Razorpay-Event-Id") or payload.get("id")
+    if not event_id:
+        raise HTTPException(status_code=400, detail="Missing Event ID")
 
-    # 1. Deduplicate Webhook Event (Concurrency protection via UniqueConstraint)
+    # Deduplicate Webhook Event
     webhook_record = WebhookEvent(event_id=event_id, event_type=event_type, payload=payload, processed=True)
     db.add(webhook_record)
     try:
@@ -115,24 +119,43 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
     # Process event
     if event_type in ['payment_link.paid', 'payment_link.partially_paid']:
         ref_id = payload.get("payload", {}).get("payment_link", {}).get("entity", {}).get("reference_id")
-        amount_paid = payload.get("payload", {}).get("payment_link", {}).get("entity", {}).get("amount_paid")
         
-        if ref_id:
-            # Row-level lock to prevent race conditions during updates
-            action = db.query(CaseAction).with_for_update().filter_by(idempotency_key=ref_id).first()
-            if action and action.status != "SUCCESS":
-                case_id = action.case_id
-                action.status = "SUCCESS"
+        # P1: Cumulative Accounting - Get the exact increment amount from the payment entity
+        payment_amount = payload.get("payload", {}).get("payment", {}).get("entity", {}).get("amount")
+        
+        # P1: Webhook Event Payload Validation
+        if not ref_id:
+            raise HTTPException(status_code=400, detail="Missing reference_id")
+        if payment_amount is None or not isinstance(payment_amount, int) or payment_amount < 0:
+            raise HTTPException(status_code=400, detail="Invalid or missing payment amount")
+            
+        # Row-level lock to prevent race conditions during updates
+        action = db.query(CaseAction).with_for_update().filter_by(idempotency_key=ref_id).first()
+        if action:
+            # We don't check action.status != "SUCCESS" here because a single action (payment link)
+            # can receive MULTIPLE partial payments. So we always process the valid webhook increment.
+            case_id = action.case_id
+            
+            case = db.query(RevenueRiskCase).filter_by(id=case_id).first()
+            if case and case.status != CaseStatus.RECOVERED:
+                # P1: Cumulative Accounting
+                new_recovered = case.amount_recovered + payment_amount
+                # Enforce invariant: 0 <= amount_recovered <= amount_at_risk
+                case.amount_recovered = min(new_recovered, case.amount_at_risk)
                 
-                case = db.query(RevenueRiskCase).filter_by(id=case_id).first()
-                if case and case.status != CaseStatus.RECOVERED:
+                # P0: Partial Payment State Semantics
+                if case.amount_recovered >= case.amount_at_risk:
                     case.transition_to(CaseStatus.RECOVERED)
-                    case.amount_recovered = amount_paid
-                    db.add(AuditEvent(
-                        case_id=case_id,
-                        event_type="WEBHOOK_RECEIVED",
-                        description=f"Received payment_link.paid for {amount_paid} paise",
-                        metadata_blob={"raw": payload}
-                    ))
-                db.commit()
+                    action.status = "SUCCESS" # Mark action fully successful
+                else:
+                    # Option A: WAITING_FOR_OUTCOME remains active after partial payment.
+                    pass 
+                
+                db.add(AuditEvent(
+                    case_id=case_id,
+                    event_type="WEBHOOK_RECEIVED",
+                    description=f"Received {event_type} for {payment_amount} paise. Total: {case.amount_recovered}",
+                    metadata_blob={"raw": payload}
+                ))
+            db.commit()
     return {"status": "ok"}

@@ -56,17 +56,19 @@ def test_webhook_invalid_signature(db: Session):
 
 def test_webhook_deduplication(db: Session):
     case_id = str(uuid.uuid4())
-    case = RevenueRiskCase(id=case_id, amount_at_risk=5000, amount_recovered=0, case_type="FAIL", status=CaseStatus.WAITING_FOR_OUTCOME)
+    case = RevenueRiskCase(id=case_id, amount_at_risk=5000, amount_recovered=0, case_type="F", status=CaseStatus.WAITING_FOR_OUTCOME)
     db.add(case)
-    
-    action = CaseAction(id=str(uuid.uuid4()), case_id=case_id, action_type="LINK", idempotency_key=f"idem_{case_id}", status="PENDING")
+    action = CaseAction(id=str(uuid.uuid4()), case_id=case_id, action_type="CREATE_PAYMENT_LINK", idempotency_key=f"idem_{case_id}")
     db.add(action)
     db.commit()
     
     payload = {
         "event": "payment_link.paid",
         "id": f"evt_{uuid.uuid4()}",
-        "payload": {"payment_link": {"entity": {"reference_id": action.idempotency_key, "amount_paid": 5000}}}
+        "payload": {
+            "payment_link": {"entity": {"reference_id": action.idempotency_key}},
+            "payment": {"entity": {"amount": 5000}}
+        }
     }
     body_bytes, expected_sig = sign_payload(payload)
     
@@ -81,25 +83,15 @@ def test_webhook_deduplication(db: Session):
     db.refresh(case)
     assert case.amount_recovered == 5000
     
-    # Simulate duplicate delivery (Replay)
-    res2 = asyncio.run(razorpay_webhook(req, db))
-    # It should return a soft 200 OK with duplicate event message so Razorpay stops retrying
-    assert res2 == {"status": "ok", "message": "duplicate event"}
-    
-    # Make sure amount wasn't double-counted
+    # Second delivery
+    res = asyncio.run(razorpay_webhook(req, db))
+    assert res == {"status": "ok", "message": "duplicate event"}
     db.refresh(case)
-    assert case.amount_recovered == 5000 # Still 5000!
-    
-    # Cleanup
-    from app.models.domain import AuditEvent
-    db.query(CaseAction).filter_by(case_id=case_id).delete()
-    db.query(WebhookEvent).filter_by(event_id=payload["id"]).delete()
-    db.query(AuditEvent).filter_by(case_id=case_id).delete()
-    db.query(RevenueRiskCase).filter_by(id=case_id).delete()
-    db.commit()
+    assert case.amount_recovered == 5000 # No double counting
 
 def test_webhook_missing_event_id_handled_safely(db: Session):
-    payload = {"event": "payment_link.paid", "id": "unknown_event"}
+    # If no ID is provided, it should safely reject with 400 instead of crashing or sharing "unknown_event"
+    payload = {"event": "payment_link.paid"}
     body_bytes, expected_sig = sign_payload(payload)
     
     req = MockRequest(body_bytes, {
@@ -107,9 +99,8 @@ def test_webhook_missing_event_id_handled_safely(db: Session):
         # Missing x-razorpay-event-id
     })
     
-    # Should not crash, just processes with fallback ID
-    res = asyncio.run(razorpay_webhook(req, db))
-    assert res == {"status": "ok"}
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(razorpay_webhook(req, db))
     
-    db.query(WebhookEvent).filter_by(event_id="unknown_event").delete()
-    db.commit()
+    assert exc.value.status_code == 400
+    assert "Missing Event ID" in exc.value.detail

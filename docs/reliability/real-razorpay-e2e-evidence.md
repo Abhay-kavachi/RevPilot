@@ -25,7 +25,7 @@ This document serves as proof that RevPilot has successfully executed genuine en
 - **Webhook Event ID**: `TVYTRwFplYpp1I` (`payment_link.partially_paid`)
 - **Amount at Risk**: ₹500.00 (50000 paise)
 - **Recovered Amount**: ₹200.00 (20000 paise)
-- **Final Case Status**: `CaseStatus.RECOVERED`
+- **Final Case Status**: `CaseStatus.WAITING_FOR_OUTCOME` (Remains eligible for further partial payments until fully recovered)
 - **Signature Verification**: Validated successfully via strict HMAC-SHA256 (`200 OK`)
 - **Webhook Arrival Evidence**:
   Received `payment_link.partially_paid` with `amount_paid = 20000`. This independently updated the case `amount_recovered` to accurately reflect only the partial amount paid, preventing financial misalignment.

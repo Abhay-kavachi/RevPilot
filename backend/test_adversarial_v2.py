@@ -105,7 +105,14 @@ async def test_json_abuse_webhook():
 @pytest.mark.asyncio
 async def test_webhook_abuse(db):
     event_id = str(uuid.uuid4())
-    payload = {"event": "payment_link.paid", "id": event_id}
+    payload = {
+        "event": "payment_link.paid",
+        "id": event_id,
+        "payload": {
+            "payment_link": {"entity": {"reference_id": "mock_ref"}},
+            "payment": {"entity": {"amount": 100}}
+        }
+    }
     raw_body = json.dumps(payload).encode()
     secret = os.getenv("RAZORPAY_WEBHOOK_SECRET", "mock_webhook_secret").encode('utf-8')
     sig = hmac.new(secret, msg=raw_body, digestmod=hashlib.sha256).hexdigest()

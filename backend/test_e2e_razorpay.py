@@ -78,6 +78,11 @@ def test_real_razorpay_e2e():
                         "amount_paid": 5000,
                         "status": "paid"
                     }
+                },
+                "payment": {
+                    "entity": {
+                        "amount": 5000
+                    }
                 }
             },
             "created_at": 1600000000

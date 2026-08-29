@@ -109,13 +109,19 @@ async def test_concurrent_webhooks(db):
     db.commit()
 
     # Create payload
+    event_id = f"evt_{uuid.uuid4()}"
     payload = {
         "event": "payment_link.paid",
+        "id": event_id,
         "payload": {
             "payment_link": {
                 "entity": {
-                    "reference_id": idem_key,
-                    "amount_paid": 100
+                    "reference_id": idem_key
+                }
+            },
+            "payment": {
+                "entity": {
+                    "amount": 100
                 }
             }
         }

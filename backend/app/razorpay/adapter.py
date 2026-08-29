@@ -47,7 +47,7 @@ class RazorpayAdapter:
             "description": description,
             "reminder_enable": True,
             "accept_partial": True,
-            "first_min_partial_amount": 10000 # Minimum 100 INR
+            "first_min_partial_amount": min(amount, 10000) # Minimum 100 INR or total amount
         }
         return self._post("/payment_links", payload)
 

@@ -70,7 +70,10 @@ async def test_concurrency_and_replay_resilience():
     payload = {
         "event": "payment_link.paid",
         "id": f"evt_{uuid.uuid4()}",
-        "payload": {"payment_link": {"entity": {"reference_id": action.idempotency_key, "amount_paid": 10000}}}
+        "payload": {
+            "payment_link": {"entity": {"reference_id": action.idempotency_key}},
+            "payment": {"entity": {"amount": 10000}}
+        }
     }
     
     body_bytes, expected_sig = sign_payload(payload)

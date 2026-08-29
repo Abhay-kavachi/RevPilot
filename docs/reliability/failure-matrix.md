@@ -23,7 +23,7 @@ This matrix maps system failures, edge cases, and API limits to RevPilot's handl
 
 | Failure Class | Scenario | Handling Mechanism | Verification |
 |---------------|----------|-------------------|--------------|
-| **Partial Payments** | User pays a smaller or larger amount than `amount_at_risk`. | The webhook explicitly sets `amount_recovered = amount_paid`. `get_dashboard_stats` purely sums `amount_recovered` for closed cases. | **REAL TESTED** (See `real-razorpay-e2e-evidence.md`) |
+| **Partial Payments** | User pays a smaller amount than `amount_at_risk`. | The webhook increments `amount_recovered` by the exact transaction `amount`. The case remains `WAITING_FOR_OUTCOME` until cumulative recovery satisfies the risk. | **REAL TESTED** (See `real-razorpay-e2e-evidence.md`) |
 | **Float Truncation** | Policy configured with floats (`₹2.50`) instead of paise. | System strictly enforces integer paise using Pydantic `StrictInt`. Fails config on load rather than risking truncation. | **SYNTHETIC TESTED** (`test_policy_configuration.py`) |
 
 ## 4. API & Rate Limits

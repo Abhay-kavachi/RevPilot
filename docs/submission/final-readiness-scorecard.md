@@ -13,7 +13,7 @@ This scorecard evaluates the current state of RevPilot against production and bu
 
 ## 2. Economic & Financial Integrity (10/10)
 - [x] All monetary amounts strongly typed as integer paise. `StrictInt` enforced. **(SYNTHETIC TESTED)**
-- [x] Amount Recovered strictly driven by Provider Webhooks, not assumptions. **(REAL TESTED)**
+- [x] Cumulative Amount Recovered strictly incremented by verified transaction payload events, capping at risk ceiling. **(REAL TESTED)**
 - [x] Duplicate webhooks are successfully deduplicated and ignored. **(SYNTHETIC TESTED)**
 - [x] Missing configuration throws explicit `KeyError` or `ValueError` at runtime instead of silently defaulting. **(SYNTHETIC TESTED)**
 

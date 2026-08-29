@@ -97,7 +97,14 @@ async def test_rbac_enforcement(auth_headers):
 async def test_duplicate_webhook_replay(db):
     import os
     event_id = str(uuid.uuid4())
-    payload = {"event": "payment_link.paid", "id": event_id}
+    payload = {
+        "event": "payment_link.paid",
+        "id": event_id,
+        "payload": {
+            "payment_link": {"entity": {"reference_id": "mock_ref"}},
+            "payment": {"entity": {"amount": 100}}
+        }
+    }
     raw_body = json.dumps(payload).encode()
     secret = os.getenv("RAZORPAY_WEBHOOK_SECRET", "mock_webhook_secret").encode('utf-8')
     sig = hmac.new(secret, msg=raw_body, digestmod=hashlib.sha256).hexdigest()

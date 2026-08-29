@@ -27,7 +27,7 @@ def check():
     for a in audits:
         print(f" - {a.event_type}: {a.description}")
         if a.event_type == "WEBHOOK_RECEIVED":
-            print(f"   Payload: {json.dumps(a.metadata_blob)[:200]}...")
+            print(f"   Payload: {json.dumps(a.metadata_blob, indent=2)}")
             
     db.close()
 
