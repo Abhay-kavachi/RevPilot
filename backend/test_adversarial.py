@@ -26,24 +26,24 @@ def test_cheap_action_beats_expensive():
     
     # Store old values
     old_p_retry = policy.base_probabilities.get("RETRY_PAYMENT", 0.0)
-    old_c_retry = policy.action_costs.get("RETRY_PAYMENT", 0.0)
+    old_c_retry = policy.action_costs_paise.get("RETRY_PAYMENT", 0)
     old_p_link = policy.base_probabilities.get("CREATE_PAYMENT_LINK", 0.0)
-    old_c_link = policy.action_costs.get("CREATE_PAYMENT_LINK", 0.0)
+    old_c_link = policy.action_costs_paise.get("CREATE_PAYMENT_LINK", 0)
     
     # Apply adversarial conditions
     policy.base_probabilities["RETRY_PAYMENT"] = 0.90
-    policy.action_costs["RETRY_PAYMENT"] = 10000
+    policy.action_costs_paise["RETRY_PAYMENT"] = 10000
     
     policy.base_probabilities["CREATE_PAYMENT_LINK"] = 0.80
-    policy.action_costs["CREATE_PAYMENT_LINK"] = 10
+    policy.action_costs_paise["CREATE_PAYMENT_LINK"] = 10
     
-    evals = engine.evaluate_case("FAILED_PAYMENT", 1000, 0)
+    evals = engine.evaluate_case("FAILED_PAYMENT", 5000, 0)
     
     # Restore
     policy.base_probabilities["RETRY_PAYMENT"] = old_p_retry
-    policy.action_costs["RETRY_PAYMENT"] = old_c_retry
+    policy.action_costs_paise["RETRY_PAYMENT"] = old_c_retry
     policy.base_probabilities["CREATE_PAYMENT_LINK"] = old_p_link
-    policy.action_costs["CREATE_PAYMENT_LINK"] = old_c_link
+    policy.action_costs_paise["CREATE_PAYMENT_LINK"] = old_c_link
     
     assert evals[0].action_type == "CREATE_PAYMENT_LINK"
 
@@ -52,12 +52,12 @@ def test_high_probability_outweighed_by_friction():
     from app.core.policy import policy_manager
     policy = policy_manager.economic_policy
     
-    old_f_link = policy.action_frictions.get("CREATE_PAYMENT_LINK", 0.0)
-    policy.action_frictions["CREATE_PAYMENT_LINK"] = 50000 # Massive friction
+    old_f_link = policy.action_frictions_paise.get("CREATE_PAYMENT_LINK", 0)
+    policy.action_frictions_paise["CREATE_PAYMENT_LINK"] = 50000 # Massive friction
     
     evals = engine.evaluate_case("FAILED_PAYMENT", 1000, 0)
     
-    policy.action_frictions["CREATE_PAYMENT_LINK"] = old_f_link
+    policy.action_frictions_paise["CREATE_PAYMENT_LINK"] = old_f_link
     
     assert evals[0].action_type != "CREATE_PAYMENT_LINK"
 

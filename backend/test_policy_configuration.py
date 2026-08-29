@@ -17,7 +17,8 @@ def mock_policy_file(tmp_path):
           "NO_ACTION": 0.0
         },
         "failure_reason_multipliers": {
-          "test_reason": 0.5
+          "test_reason": 0.5,
+          "unknown": 0.6
         },
         "attempt_adjustments": [
           { "attempt_count": 0, "multiplier": 1.0 },
@@ -26,17 +27,17 @@ def mock_policy_file(tmp_path):
         "age_adjustments": [
           { "max_days": 999, "multiplier": 1.0 }
         ],
-        "action_costs": {
+        "action_costs_paise": {
           "CREATE_PAYMENT_LINK": 100,
           "SEND_REMINDER": 5,
           "NO_ACTION": 0
         },
-        "action_frictions": {
+        "action_frictions_paise": {
           "CREATE_PAYMENT_LINK": 0,
           "SEND_REMINDER": 0,
           "NO_ACTION": 0
         },
-        "action_risks": {
+        "action_risks_paise": {
           "CREATE_PAYMENT_LINK": 0,
           "SEND_REMINDER": 0,
           "NO_ACTION": 0
@@ -64,25 +65,54 @@ def test_policy_drives_economic_engine(mock_policy_file):
     with patch("app.economics.engine.policy_manager", manager):
         engine = EconomicEngine()
         
-        # Test 1: Base probabilities apply
-        context = AgentContext(
-            case_id="1", case_type="F", status="OPEN", amount_at_risk=1000, 
-            attempt_count=0, max_attempts=3, recovery_deadline=None, action_history=[],
-            is_recoverable=True, days_since_creation=0, failure_reason="unknown"
-        )
-        
+        # Test 1: Base probabilities apply (with 'unknown' failure reason multiplier of 0.6)
+        # 0.90 * 0.6 = 0.54
         evals = engine.evaluate_case("F", 1000, attempt_count=0)
         link_eval = next(e for e in evals if e.action_type == "CREATE_PAYMENT_LINK")
-        assert link_eval.success_probability == 0.90 # Configured in mock policy
-        assert link_eval.expected_value == 900 # 1000 * 0.90
-        assert link_eval.final_enr == 800 # 900 - 100 cost
+        assert link_eval.success_probability == pytest.approx(0.54)
+        assert link_eval.expected_value == 540 # 1000 * 0.54
+        assert link_eval.final_enr == 440 # 540 - 100 cost
         
-        # Test 2: Attempt adjustment applies
+        # Test 2: Attempt adjustment applies (multiplier 0.1)
+        # 0.54 * 0.1 = 0.054
         evals_attempt = engine.evaluate_case("F", 1000, attempt_count=2)
         link_eval_attempt = next(e for e in evals_attempt if e.action_type == "CREATE_PAYMENT_LINK")
-        assert link_eval_attempt.success_probability == pytest.approx(0.09) # 0.90 base * 0.1 multiplier
+        assert link_eval_attempt.success_probability == pytest.approx(0.054)
         
-        # Test 3: Failure reason multiplier applies
+        # Test 3: Failure reason multiplier applies ('test_reason' multiplier 0.5)
+        # 0.90 * 0.5 = 0.45
         evals_reason = engine.evaluate_case("F", 1000, attempt_count=0, failure_reason="test_reason")
         link_eval_reason = next(e for e in evals_reason if e.action_type == "CREATE_PAYMENT_LINK")
-        assert link_eval_reason.success_probability == pytest.approx(0.45) # 0.90 * 0.5
+        assert link_eval_reason.success_probability == pytest.approx(0.45)
+        
+def test_money_units_are_integers():
+    # Prove that the configuration prevents float injection
+    from app.core.policy import EconomicPolicy
+    from pydantic_core import ValidationError
+    
+    # Passing a float like 2.50 should be explicitly rejected by StrictInt
+    with pytest.raises(ValidationError) as exc_info:
+        EconomicPolicy(
+            version="1.0",
+            base_probabilities={},
+            failure_reason_multipliers={},
+            attempt_adjustments=[],
+            age_adjustments=[],
+            action_costs_paise={"TEST": 2.50},  # Float rejected
+            action_frictions_paise={"TEST": 500},
+            action_risks_paise={"TEST": 0}
+        )
+        
+    assert "Input should be a valid integer" in str(exc_info.value)
+
+def test_probability_input_validation():
+    engine = EconomicEngine()
+    
+    with pytest.raises(ValueError, match="customer_history_score must be between 0 and 1"):
+        engine.evaluate_case("F", 1000, 0, customer_history_score=-0.5)
+        
+    with pytest.raises(ValueError, match="customer_history_score must be between 0 and 1"):
+        engine.evaluate_case("F", 1000, 0, customer_history_score=1.5)
+        
+    # Valid input shouldn't raise exception
+    engine.evaluate_case("F", 1000, 0, customer_history_score=0.95)

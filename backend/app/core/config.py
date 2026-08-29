@@ -46,25 +46,26 @@ class RazorpayConfig(BaseSettings):
         extra = "ignore"
 
 class AppSettings(BaseSettings):
+    # IMMUTABLE TECHNICAL INVARIANT: None
+    
+    # PRODUCTION CONFIGURATION
     TESTING: str = "0"
     DATABASE_URL: str = Field(..., description="PostgreSQL DB URL")
+    
+    # SAFE DEVELOPMENT DEFAULT (Can be overridden in production)
     WORKER_POLL_INTERVAL: int = 5
+    
+    # BUSINESS POLICY boundaries are defined in policy.json, not here.
     
     limits: LimitsConfig = LimitsConfig()
     pagination: PaginationConfig = PaginationConfig()
     
     @property
     def security(self) -> SecurityConfig:
-        if self.TESTING == "1":
-            os.environ["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "test_secret_key_only")
         return SecurityConfig()
         
     @property
     def razorpay(self) -> RazorpayConfig:
-        if self.TESTING == "1":
-            os.environ["RAZORPAY_KEY_ID"] = os.getenv("RAZORPAY_KEY_ID", "mock_key")
-            os.environ["RAZORPAY_KEY_SECRET"] = os.getenv("RAZORPAY_KEY_SECRET", "mock_secret")
-            os.environ["RAZORPAY_WEBHOOK_SECRET"] = os.getenv("RAZORPAY_WEBHOOK_SECRET", "mock_wh_secret")
         return RazorpayConfig()
 
     class Config:

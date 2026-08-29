@@ -22,6 +22,9 @@ class EconomicEngine:
         self.recovery = policy_manager.recovery_policy
 
     def evaluate_case(self, case_type: str, amount_at_risk: int, attempt_count: int, age_days: int = 0, failure_reason: Optional[str] = None, customer_history_score: float = 1.0) -> List[ActionEvaluation]:
+        if not (0.0 <= customer_history_score <= 1.0):
+            raise ValueError(f"customer_history_score must be between 0 and 1, got {customer_history_score}")
+            
         evaluations = []
         
         for action in self.recovery.allowed_actions:
@@ -33,9 +36,12 @@ class EconomicEngine:
                 
             # 1. Fetch base configs from policy
             base_prob = self.policy.get_base_probability(action)
-            cost = int(self.policy.action_costs.get(action, 0.0))
-            friction = int(self.policy.action_frictions.get(action, 0.0))
-            risk = int(self.policy.action_risks.get(action, 0.0))
+            cost = self.policy.action_costs_paise.get(action)
+            friction = self.policy.action_frictions_paise.get(action)
+            risk = self.policy.action_risks_paise.get(action)
+            
+            if cost is None or friction is None or risk is None:
+                raise KeyError(f"Missing monetary configuration for action {action}")
             
             # 2. Apply deterministic state-aware multipliers from policy
             reason_factor = self.policy.get_failure_reason_multiplier(failure_reason or "unknown")

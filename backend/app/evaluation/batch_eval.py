@@ -106,11 +106,31 @@ class Evaluator:
             "stop_accuracy": (stop_accuracy_num / stop_accuracy_den * 100) if stop_accuracy_den > 0 else 100.0
         }
 
+import subprocess
+
+def get_git_commit():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+    except Exception:
+        return "unknown"
+
 if __name__ == "__main__":
+    from app.core.policy import policy_manager
     evaluator = Evaluator()
     seeds = [42, 100, 999, 12345, 55555]
     
-    print("Running multi-seed independent benchmark...")
+    commit_sha = get_git_commit()
+    policy_version = policy_manager.economic_policy.version
+    
+    print("=" * 60)
+    print("REPRODUCIBILITY METADATA")
+    print(f"Dataset Version: v1.0 (Synthetic)")
+    print(f"World Model Version: v1.0.0")
+    print(f"Economic Policy Version: {policy_version}")
+    print(f"Code Commit SHA: {commit_sha}")
+    print("=" * 60)
+    
+    print("\nRunning multi-seed independent benchmark...")
     for seed in seeds:
         print(f"\nSEED: {seed}")
         cases = evaluator.generate_cases(100, seed=seed)
