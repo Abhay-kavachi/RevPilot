@@ -23,5 +23,9 @@ class AgentContext(BaseModel):
     is_recoverable: bool = True
     requires_approval: bool = False
     
-    class Config:
-        arbitrary_types_allowed = True
+    # Economics / Probability Factors
+    days_since_creation: int = 0
+    failure_reason: Optional[str] = None
+    customer_history_score: float = 1.0
+    
+    model_config = {"arbitrary_types_allowed": True}

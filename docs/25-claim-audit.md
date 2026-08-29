@@ -39,6 +39,6 @@ This document formally classifies every major claim about RevPilot according to 
 
 ## 5. Security & Infrastructure
 * **"Uses PostgreSQL for robust transactional guarantees"**
-  * **NOT EXECUTED IN CURRENT ENVIRONMENT**: The ORM and Alembic migrations are written for PostgreSQL, but due to local Docker limitations, the MVP dynamically falls back to `SQLite`. 
+  * **VERIFIED**: The ORM and Alembic migrations are executed against PostgreSQL 18. Tests prove that database constraints (like unique idempotency keys) and transactional commits function exactly as expected. The temporary SQLite fallback was explicitly removed.
 * **"Secrets are protected"**
   * **VERIFIED**: No hardcoded API keys exist in the repository. All secrets are loaded via `os.getenv`.

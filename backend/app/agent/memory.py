@@ -21,7 +21,17 @@ class AgentMemory:
                 execution_result=action.execution_result
             ))
             
-        is_recoverable = case.status not in [CaseStatus.RECOVERED, CaseStatus.STOPPED, CaseStatus.ESCALATED]
+        from datetime import datetime, timezone
+        
+        # Calculate age in days
+        now = datetime.now(timezone.utc)
+        created_at_utc = case.created_at
+        if created_at_utc and created_at_utc.tzinfo is None:
+            created_at_utc = created_at_utc.replace(tzinfo=timezone.utc)
+            
+        age_days = (now - created_at_utc).days if created_at_utc else 0
+        
+        is_recoverable = case.status not in [CaseStatus.RECOVERED, CaseStatus.STOPPED]
             
         return AgentContext(
             case_id=case.id,
@@ -32,7 +42,9 @@ class AgentMemory:
             max_attempts=case.max_attempts,
             recovery_deadline=case.recovery_deadline,
             action_history=history,
-            is_recoverable=is_recoverable
+            is_recoverable=is_recoverable,
+            days_since_creation=max(0, age_days),
+            failure_reason="DECLINED_BY_BANK" # Mocked for now; ideally parsed from webhook details
         )
 
     def record_decisions(self, case_id: str, evaluations: list, selected_action_type: str):

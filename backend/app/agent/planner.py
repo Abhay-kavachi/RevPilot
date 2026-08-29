@@ -11,6 +11,9 @@ class AgentPlanner:
         evaluations = self.economic_engine.evaluate_case(
             case_type=context.case_type,
             amount_at_risk=context.amount_at_risk,
-            attempt_count=context.attempt_count
+            attempt_count=context.attempt_count,
+            age_days=context.days_since_creation,
+            failure_reason=context.failure_reason,
+            customer_history_score=context.customer_history_score
         )
         return evaluations

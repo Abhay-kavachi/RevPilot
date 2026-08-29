@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel
 
 class ActionEvaluation(BaseModel):
@@ -37,15 +37,30 @@ class EconomicEngine:
         }
     }
 
-    def evaluate_case(self, case_type: str, amount_at_risk: int, attempt_count: int) -> List[ActionEvaluation]:
+    def get_failure_reason_factor(self, reason: Optional[str]) -> float:
+        if not reason:
+            return 1.0
+        reason = reason.upper()
+        if "INSUFFICIENT_FUNDS" in reason:
+            return 0.5 # Less likely to succeed quickly
+        if "DECLINED_BY_BANK" in reason:
+            return 0.7
+        if "TIMEOUT" in reason or "NETWORK" in reason:
+            return 0.95 # Highly recoverable
+        return 1.0
+
+    def evaluate_case(self, case_type: str, amount_at_risk: int, attempt_count: int, age_days: int = 0, failure_reason: Optional[str] = None, customer_history_score: float = 1.0) -> List[ActionEvaluation]:
         if case_type not in self.ACTION_PARAMS:
             return []
             
         params = self.ACTION_PARAMS[case_type]
         evaluations = []
         
-        # Diminishing returns penalty per attempt
-        attempt_penalty_factor = max(0.0, 1.0 - (attempt_count * 0.15))
+        # Deterministic factors
+        attempt_factor = max(0.1, 1.0 - (attempt_count * 0.15))
+        age_factor = max(0.2, 1.0 - (age_days * 0.05))
+        failure_reason_factor = self.get_failure_reason_factor(failure_reason)
+        history_factor = customer_history_score
         
         for action_type, factors in params.items():
             if action_type == "CLOSE_CASE":
@@ -60,7 +75,11 @@ class EconomicEngine:
                 ))
                 continue
                 
-            p_success = factors["P"] * attempt_penalty_factor
+            base_p = factors["P"]
+            
+            # P(success) = base(action, case_type) * failure_reason_factor * attempt_factor * age_factor * history_factor
+            p_success = base_p * failure_reason_factor * attempt_factor * age_factor * history_factor
+            p_success = max(0.0, min(1.0, p_success)) # Bound between 0 and 1
             
             # Expected Value is V * P
             ev = int(amount_at_risk * p_success)

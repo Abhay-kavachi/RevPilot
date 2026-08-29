@@ -7,7 +7,7 @@ Instead of generic "dumb retries", RevPilot operates on a strict deterministic *
 ## Architecture
 
 * **Backend**: FastAPI (Python)
-* **Database**: SQLite (Local Fallback for MVP) / PostgreSQL (Production)
+* **Database**: PostgreSQL
 * **Agent Runtime**: Deterministic state machine (`OBSERVE` -> `PLAN` -> `POLICY` -> `ACT` -> `REASSESS`).
 * **Frontend**: Vanilla HTML/JS/Tailwind Dashboard rendering real-time data from the API.
 * **Integrations**: `httpx`-based Razorpay Adapter with HMAC-SHA256 webhook signature verification.
@@ -31,6 +31,9 @@ Instead of generic "dumb retries", RevPilot operates on a strict deterministic *
 4. **Environment Variables**:
    Create a `.env` file in the `backend/` directory:
    ```env
+   # PostgreSQL Database URL
+   DATABASE_URL=postgresql://revpilot_app:RevPassword@localhost:5432/revpilot
+   
    # Razorpay Test Mode Credentials
    RAZORPAY_KEY_ID=rzp_test_your_key_id
    RAZORPAY_KEY_SECRET=your_key_secret
@@ -39,18 +42,24 @@ Instead of generic "dumb retries", RevPilot operates on a strict deterministic *
 
 ## Running the Application
 
-### 1. Start the API & Background Worker
+### 1. Run Database Migrations
+```bash
+cd backend
+alembic upgrade head
+```
+
+### 2. Start the API & Background Worker
 ```bash
 cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 *Note: The background worker (`AgentWorker`) will start automatically via the FastAPI lifespan hook to poll for eligible cases.*
 
-### 2. Open the Merchant Console
+### 3. Open the Merchant Console
 Double click or open `demo/dashboard.html` in your web browser. 
 (No Node.js/npm required for the MVP UI).
 
-### 3. Run the Demo Setup
+### 4. Run the Demo Setup
 To see the system in action with a fresh database:
 ```bash
 cd backend
@@ -80,9 +89,9 @@ python app/evaluation/batch_eval.py
   * Webhook signature validation (HMAC-SHA256).
   * Webhook deduplication and transactional state transitions.
   * The autonomous agent polling loop.
+  * PostgreSQL integration and transactional safety.
 * **SIMULATED**:
   * Success probabilities (`P=0.65`) are currently synthetic parameters. In production, these must be empirical historical metrics.
   * Without `.env` credentials, the Razorpay `httpx` adapter will gracefully simulate a failure (`401 Unauthorized`).
 * **LIMITATIONS**:
-  * SQLite is used instead of Postgres for immediate local testing.
   * The background worker is an `asyncio` loop rather than a distributed Celery/Kafka queue.

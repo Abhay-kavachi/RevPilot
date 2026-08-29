@@ -18,7 +18,10 @@ def db():
 def test_negative_ev_stops_immediately(db):
     # Setup
     case_id = "test_failure_neg_ev"
+    from app.models.domain import CaseAction, RevenueRiskCase, AuditEvent, CaseDecision
     db.query(CaseAction).filter_by(case_id=case_id).delete()
+    db.query(AuditEvent).filter_by(case_id=case_id).delete()
+    db.query(CaseDecision).filter_by(case_id=case_id).delete()
     db.query(RevenueRiskCase).filter_by(id=case_id).delete()
     db.commit()
     
@@ -43,7 +46,10 @@ def test_negative_ev_stops_immediately(db):
 def test_max_attempt_stops(db):
     # Setup
     case_id = "test_failure_max_attempt"
+    from app.models.domain import CaseAction, RevenueRiskCase, AuditEvent, CaseDecision
     db.query(CaseAction).filter_by(case_id=case_id).delete()
+    db.query(AuditEvent).filter_by(case_id=case_id).delete()
+    db.query(CaseDecision).filter_by(case_id=case_id).delete()
     db.query(RevenueRiskCase).filter_by(id=case_id).delete()
     db.commit()
     
