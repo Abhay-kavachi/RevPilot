@@ -71,6 +71,21 @@ A ₹28 payment fails. RevPilot evaluates the top two candidate actions:
 * Even the cheapest action (SEND_REMINDER) yields a negative ENR (-34 paise).
 * **Decision:** NO_ACTION (STOP). RevPilot knows when the economically correct recovery action is no action.
 
+
+## ✨ 11/10 Innovation: The Recovery Portfolio Optimizer
+
+While existing systems process failed payments sequentially, RevPilot introduces an optional **Recovery Portfolio Optimizer** that frames revenue recovery as a global capital-allocation (knapsack) problem.
+
+Given a strict **Merchant Recovery Budget**, RevPilot doesn't just greedily drop cases. It solves the Multiple-Choice Knapsack Problem (MCKP) via Dynamic Programming to maximize expected net recovery across a batch of cases. 
+
+**What this means practically:**
+If budget is tight, RevPilot might intentionally *downgrade* an intervention on a mid-value case (e.g., opting for a 50 paise SMS instead of a 250 paise Payment Link) to free up budget for a high-value case that yields significantly more expected return.
+
+*Run the technical spike locally to see it downgrade interventions to maximize global yield:*
+`ash
+python scripts/run_portfolio.py
+`
+
 ## Benchmark 
 *(Tested on 5 independent synthetic seed populations of 100 cases)*
 

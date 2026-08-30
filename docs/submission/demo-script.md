@@ -24,10 +24,14 @@
 **Visual:** Show the `batch_eval.py` Net Recovered Revenue benchmark results.
 **Script:** "We evaluated this across 500 cases in our synthetic world model. RevPilot mathematically beats a 'Max Retry' strategy on Net Recovered Revenue across every single seed. It does this not by recovering more gross payments, but by intelligently refusing to throw good money after bad. It drops interventions by 15%, increasing net margins."
 
-### [4:15 - 4:40] Architecture
+### [4:15 - 4:45] The 11/10 Portfolio Feature
+**Visual:** Run `python scripts/run_portfolio.py` in the terminal to show the capital allocation downgrade in action.
+**Script:** "But we didn't stop at case-by-case decisions. We realized recovery is a capital allocation problem. Given a fixed merchant budget, RevPilot's optional Portfolio Optimizer looks across the entire batch. If budget is tight, it solves a dynamic programming knapsack problem to intentionally *downgrade* actions on mid-value cases—like sending a 50 INR reminder instead of a 250 INR link—just to fund the highest-yield interventions elsewhere. It maximizes global ROI for every dollar spent."
+
+### [4:45 - 5:10] Architecture
 **Visual:** Quick architecture diagram (Predict -> Value -> Policy -> Act).
 **Script:** "To pass enterprise security, we enforce strict architectural boundaries. The ML Predictor *only* outputs probabilities. It has no access to Razorpay. The Economic Engine calculates value. The Policy Manager grants permission. The Agent Executor performs the API call. LLMs are intentionally excluded from the execution path to enforce deterministic financial safety."
 
-### [4:40 - 5:00] Limitations & Close
+### [5:10 - 5:30] Limitations & Close
 **Visual:** Summary slide.
 **Script:** "Within the tested failure/concurrency scenarios, this prototype is built on synthetic training data and Razorpay Test Mode. For production, the model requires historical merchant data for calibration. But the boundaries are real, the API integration is real, and the economic math is real. RevPilot doesn't just recover payments—it protects margins."
