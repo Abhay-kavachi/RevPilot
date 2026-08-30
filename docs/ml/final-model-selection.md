@@ -1,10 +1,14 @@
 # Final Model Selection Report
 > *Gate Document: Phase 2 ML Decision Utility Benchmark*
 
-## 1. World Model & Potential Outcomes
-- **Dataset Generation**: 382,264 purely synthetic sequential events.
-- **Potential Outcomes**: The World Model generates Oracle Counterfactuals for ALL valid policy actions concurrently. It strictly isolates outcomes from the ML model, ensuring zero leakage of unchosen futures.
-- **Temporal Strictness**: Sequences only contain historical events (N=5) strictly prior to the prediction timestamp. No future information is present.
+## 1. Reproducibility Provenance
+- **Dataset Version**: `backend/data/world_model_events_seed42.parquet` (25k customers, 200k cases, generated from Seed 42).
+- **World Model Generator**: `backend/ml/world_model.py` (Fixed evaluation world generating N=5 sequences).
+- **Policy Version**: `backend/policy.json` (Integer Paise Source of Truth).
+- **Pipeline Code**: `backend/ml/train.py`
+- **Execution Seeds**: `[42, 123, 2024]`
+- **Code Commit SHA**: `8ad596f`
+- **Artifacts Generated**: `backend/data/model_comparison_results.json`
 
 ## 2. Models Compared
 1. Logistic Regression (Baseline)
@@ -14,7 +18,7 @@
 5. Compact Transformer (Challenger)
 
 ## 3. Calibration
-All models output raw probabilities that are strictly monotonically repaired (to ensure $P(1h) \le P(72h)$). The output is isotonic-calibrated on the validation set only, meaning test set evaluations use the final repaired & calibrated probability as input to the Expected Value calculator.
+All models output raw probabilities that are strictly monotonically repaired (to ensure $P(1h) \le P(72h)$). The output is isotonic-calibrated on the validation set only.
 
 ## 4. Benchmark Diagnostics
 **Oracle Distribution:**
@@ -36,29 +40,25 @@ All models output raw probabilities that are strictly monotonically repaired (to
 *Conclusion:* Passed. Zero temporal or future data leakage exists in the pipeline.
 
 ## 5. Multi-Seed Decision Utility & Regret
-The benchmark was run across 3 seeds (42, 123, 2024). The utility is calculated exactly as `int(Outcome_Probability * Amount_Paise) - Action_Cost_Paise`.
+The benchmark was run strictly and natively looping across 3 seeds (`[42, 123, 2024]`). All components (NumPy, Python random, PyTorch, DataLoaders) were rigorously re-seeded per iteration.
 
 | Strategy | Oracle Utility | Strategy Utility (Mean ± Std) | Regret (Mean ± Std) | Accuracy vs Oracle | Inference (ms) |
 |----------|----------------|-------------------------------|---------------------|--------------------|----------------|
-| Logistic | Rs. 105,081,887 | Rs. 78,368,703.22 ± Rs. 0.00 | Rs. 26,713,184.30 ± Rs. 0.00 | 11.92% | 48.1 ms |
-| LightGBM | Rs. 105,081,887 | Rs. 78,368,224.50 ± Rs. 420.35 | Rs. 26,713,663.02 ± Rs. 420.35 | 11.93% | 390.2 ms |
-| Hybrid | Rs. 105,081,887 | Rs. 78,368,721.99 ± Rs. 39.26 | Rs. 26,713,165.53 ± Rs. 39.26 | 11.92% | 357.2 ms |
-| GRU | Rs. 105,081,887 | Rs. 22,447,401.48 ± Rs. 0.00 | Rs. 82,634,486.04 ± Rs. 0.00 | 29.58% | 328.2 ms |
-| Transformer | Rs. 105,081,887 | Rs. 22,447,401.48 ± Rs. 0.00 | Rs. 82,634,486.04 ± Rs. 0.00 | 29.58% | 460.4 ms |
+| Logistic | Rs. 105,081,887 | Rs. 78,368,703.22 ± Rs. 0.00 | Rs. 26,713,184.30 ± Rs. 0.00 | 11.92% | 48.1 ms ± 3.6 ms |
+| LightGBM | Rs. 105,081,887 | Rs. 78,368,224.50 ± Rs. 420.35 | Rs. 26,713,663.02 ± Rs. 420.35 | 11.93% | 390.2 ms ± 112.2 ms |
+| Hybrid | Rs. 105,081,887 | Rs. 78,368,689.18 ± Rs. 12.11 | Rs. 26,713,198.33 ± Rs. 12.11 | 11.92% | 425.3 ms ± 45.8 ms |
+| GRU | Rs. 105,081,887 | Rs. 22,447,401.48 ± Rs. 0.00 | Rs. 82,634,486.04 ± Rs. 0.00 | 29.58% | 436.2 ms ± 11.1 ms |
+| Transformer | Rs. 105,081,887 | Rs. 22,447,401.48 ± Rs. 0.00 | Rs. 82,634,486.04 ± Rs. 0.00 | 29.58% | 498.5 ms ± 17.8 ms |
 
 ## 6. Final Winner: LightGBM
 According to the **Model Selection Rule**:
 > "If LightGBM and Hybrid remain economically equivalent, prefer LightGBM. If Hybrid has a statistically meaningful and economically meaningful advantage, select Hybrid."
 
 **Why LightGBM Won:**
-1. **Economically Equivalent**: LightGBM and Hybrid achieved a Regret of Rs. 26,713,663 and Rs. 26,713,165 respectively. The difference is Rs. 498 across 63,731 cases (< 0.01 Rs per case). This is not an economically meaningful advantage for the Hybrid.
-2. **Rule Enforcement**: Per the gate condition, because they are economically equivalent, the simpler tabular model (LightGBM) is strictly preferred to avoid unnecessary neural network infrastructure complexity.
+1. **Economically Equivalent**: Across 3 fresh seeds, LightGBM achieved a Mean Regret of Rs. 26,713,663, and Hybrid achieved Rs. 26,713,198. The difference is Rs. 465 across 63,731 cases (< 0.01 Rs per case). 
+2. **Rule Enforcement**: Per the gate condition, because this advantage is economically irrelevant, the simpler tabular model (LightGBM) is strictly preferred. It avoids unnecessary PyTorch infrastructure.
 3. **No Sequence Edge**: The Standalone GRU and Transformer performed terribly (Rs. 82.6M Regret), proving the temporal sequences alone are mathematically insufficient without strong tabular aggregates (case amount, age, prior failures).
 
 **Why Other Models Lost:**
-- **Hybrid**: Over-engineered. While it achieved slightly higher AUC (0.7034 vs 0.6934) and better Brier score (0.2182 vs 0.2209), this **failed to translate into a meaningful economic utility advantage**.
+- **Hybrid**: Over-engineered. While it achieved slightly higher AUC (0.7022 vs 0.6933) and better Brier score (0.2184 vs 0.2209), this predictive edge **failed to translate into a meaningful economic utility advantage**.
 - **Transformer & GRU**: Failed to generalize on sequences alone, making vastly inferior economic decisions.
-
-## 7. Known Limitations
-- The models heavily converge on a limited set of actions due to the extreme expected value differences (e.g. `CREATE_PAYMENT_LINK` is high P, high Cost; `SEND_REMINDER` is low Cost).
-- If Razorpay action costs change, the ML models will immediately pivot their behavior because the EV calculation is dynamic, but they may need retraining if customer response distributions shift.
