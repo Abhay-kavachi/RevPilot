@@ -61,8 +61,8 @@ class MLPredictor:
             return PredictionResult(
                 probability=0.0, 
                 source="ML_DETERMINISTIC", 
-                model_version="1.0", 
-                feature_schema_version=self.metadata['version'], 
+                model_version=self.metadata.get('model_version', 'Unknown'), 
+                feature_schema_version=self.metadata.get('feature_schema_version', 'Unknown'), 
                 horizon=horizon
             )
 
@@ -80,8 +80,8 @@ class MLPredictor:
         return PredictionResult(
             probability=probability,
             source="ML",
-            model_version="LightGBM_Prod_v1",
-            feature_schema_version=self.metadata['version'],
+            model_version=self.metadata.get('model_version', 'Unknown'),
+            feature_schema_version=self.metadata.get('feature_schema_version', 'Unknown'),
             horizon=horizon
         )
 

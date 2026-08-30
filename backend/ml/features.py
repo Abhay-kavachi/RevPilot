@@ -19,8 +19,8 @@ class FeatureSchema:
     
     @classmethod
     def validate_artifact_schema(cls, artifact_schema_dict: dict):
-        if artifact_schema_dict.get("version") != cls.version:
-            raise ValueError(f"MODEL_SCHEMA_MISMATCH: Artifact version {artifact_schema_dict.get('version')} != Runtime {cls.version}")
+        if artifact_schema_dict.get("feature_schema_version") != cls.version:
+            raise ValueError(f"MODEL_SCHEMA_MISMATCH: Artifact version {artifact_schema_dict.get('feature_schema_version')} != Runtime {cls.version}")
         if artifact_schema_dict.get("features") != cls.features:
             raise ValueError("MODEL_SCHEMA_MISMATCH: Feature ordering/naming mismatch.")
         if artifact_schema_dict.get("horizons") != cls.horizons:

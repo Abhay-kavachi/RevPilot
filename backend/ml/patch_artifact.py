@@ -10,10 +10,14 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     
     metadata = {
-        "version": FeatureSchema.version,
-        "features": FeatureSchema.features,
+        "model_version": "LightGBM_Prod_v1.0",
+        "feature_schema_version": FeatureSchema.version,
         "horizons": FeatureSchema.horizons,
-        "expected_count": FeatureSchema.expected_count
+        "features": FeatureSchema.features,
+        "expected_count": FeatureSchema.expected_count,
+        "calibration_version": "isotonic_1.0",
+        "dataset_version": "world_model_events_seed42",
+        "world_model_version": "2.0"
     }
     
     with open(os.path.join(out_dir, 'metadata.json'), 'w') as f:

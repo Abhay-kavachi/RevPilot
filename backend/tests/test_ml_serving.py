@@ -18,26 +18,61 @@ def test_feature_builder_parity():
     """
     Assert exact order parity between training features and production features.
     """
+    import pandas as pd
     from ml.features import FeatureBuilder, FeatureSchema
     
-    # Generate vector using builder
+    # Simulate a row of raw event data (mimicking the parquet row)
+    raw_data = {
+        "amount_at_risk_paise": [50000],
+        "case_age_hours": [24.0],
+        "recent_30d_failures": [2],
+        "step": [1],
+        "action": ["CREATE_PAYMENT_LINK"]
+    }
+    df = pd.DataFrame(raw_data)
+    
+    # === OFFLINE (TRAINING) PIPELINE ===
+    df_train = pd.get_dummies(df, columns=["action"])
+    for col in FeatureSchema.features:
+        if col not in df_train.columns:
+            df_train[col] = 0.0
+    df_train["amount_at_risk_paise_log"] = np.log1p(df_train["amount_at_risk_paise"])
+    
+    # The offline vector that would go to training
+    offline_vector = df_train.iloc[0][FeatureSchema.features].values.astype(np.float32)
+    
+    # === ONLINE (SERVING) PIPELINE ===
     builder = FeatureBuilder()
-    vec = builder.build_single(
-        amount_at_risk_paise=50000,
-        age_hours=24.0,
-        recent_30d_failures=2,
-        attempt_count=1,
-        action="CREATE_PAYMENT_LINK"
+    raw = df.iloc[0]
+    online_vector = builder.build_single(
+        amount_at_risk_paise=raw["amount_at_risk_paise"],
+        age_hours=raw["case_age_hours"],
+        recent_30d_failures=raw["recent_30d_failures"],
+        attempt_count=raw["step"],
+        action=raw["action"]
     )
     
-    # Assert manual offsets based on expected schema
-    # "amount_at_risk_paise_log"
-    assert vec[FeatureSchema.features.index("amount_at_risk_paise_log")] == np.float32(np.log1p(50000))
-    assert vec[FeatureSchema.features.index("case_age_hours")] == 24.0
-    assert vec[FeatureSchema.features.index("recent_30d_failures")] == 2
-    assert vec[FeatureSchema.features.index("step")] == 1
-    assert vec[FeatureSchema.features.index("action_CREATE_PAYMENT_LINK")] == 1.0
-    assert vec[FeatureSchema.features.index("action_RETRY_PAYMENT")] == 0.0
+    # Assert exact numerical and dimensional equality
+    assert np.array_equal(offline_vector, online_vector), "Offline and Online feature vectors do not match!"
+
+def test_schema_validation_failure():
+    """
+    Assert that if metadata.json has a version mismatch, the Predictor refuses to load.
+    """
+    import json
+    from unittest.mock import patch, mock_open
+    
+    bad_metadata = {
+        "model_version": "1.0",
+        "feature_schema_version": "99.9.9",  # INTENTIONAL MISMATCH
+        "horizons": ["1h"],
+        "features": []
+    }
+    
+    with patch("app.core.config.settings.ML_ENABLED", True):
+        with patch("builtins.open", mock_open(read_data=json.dumps(bad_metadata))):
+            with pytest.raises(RuntimeError, match="MODEL_SCHEMA_MISMATCH"):
+                _ = MLPredictor(model_dir="/fake")
 
 @pytest.mark.skipif(ml_predictor is None or not ml_predictor.available, reason="ML Model not available")
 def test_action_conditioning_changes_probability():
