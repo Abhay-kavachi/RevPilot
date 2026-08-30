@@ -35,28 +35,28 @@ All models output raw probabilities that are strictly monotonically repaired (to
 - Shuffled AUC collapsed from 0.70+ down to 0.485 - 0.511 (random chance).
 *Conclusion:* Passed. Zero temporal or future data leakage exists in the pipeline.
 
-## 5. Decision Utility & Regret
-The utility is calculated exactly as `int(Outcome_Probability * Amount_Paise) - Action_Cost_Paise`.
+## 5. Multi-Seed Decision Utility & Regret
+The benchmark was run across 3 seeds (42, 123, 2024). The utility is calculated exactly as `int(Outcome_Probability * Amount_Paise) - Action_Cost_Paise`.
 
-| Strategy | Oracle Utility | Strategy Utility | Regret | Accuracy vs Oracle |
-|----------|----------------|------------------|--------|--------------------|
-| Logistic | Rs. 105,081,887 | Rs. 78,368,703 | Rs. 26,713,184 | 11.92% |
-| LightGBM | Rs. 105,081,887 | Rs. 78,368,703 | Rs. 26,713,184 | 11.92% |
-| Hybrid | Rs. 105,081,887 | Rs. 78,368,707 | Rs. 26,713,179 | 11.92% |
-| Standalone GRU | Rs. 105,081,887 | Rs. 22,447,401 | Rs. 82,634,486 | 29.58% |
-
-*(Note: Diagnostic perturbation test confirms the problem is non-trivial and models perform properly.)*
+| Strategy | Oracle Utility | Strategy Utility (Mean ± Std) | Regret (Mean ± Std) | Accuracy vs Oracle | Inference (ms) |
+|----------|----------------|-------------------------------|---------------------|--------------------|----------------|
+| Logistic | Rs. 105,081,887 | Rs. 78,368,703.22 ± Rs. 0.00 | Rs. 26,713,184.30 ± Rs. 0.00 | 11.92% | 48.1 ms |
+| LightGBM | Rs. 105,081,887 | Rs. 78,368,224.50 ± Rs. 420.35 | Rs. 26,713,663.02 ± Rs. 420.35 | 11.93% | 390.2 ms |
+| Hybrid | Rs. 105,081,887 | Rs. 78,368,721.99 ± Rs. 39.26 | Rs. 26,713,165.53 ± Rs. 39.26 | 11.92% | 357.2 ms |
+| GRU | Rs. 105,081,887 | Rs. 22,447,401.48 ± Rs. 0.00 | Rs. 82,634,486.04 ± Rs. 0.00 | 29.58% | 328.2 ms |
+| Transformer | Rs. 105,081,887 | Rs. 22,447,401.48 ± Rs. 0.00 | Rs. 82,634,486.04 ± Rs. 0.00 | 29.58% | 460.4 ms |
 
 ## 6. Final Winner: LightGBM
-According to the **Model Selection Rule**, models with equivalent Decision Utility and Regret fall to tie-breakers. 
+According to the **Model Selection Rule**:
+> "If LightGBM and Hybrid remain economically equivalent, prefer LightGBM. If Hybrid has a statistically meaningful and economically meaningful advantage, select Hybrid."
 
 **Why LightGBM Won:**
-1. **Identical Regret**: LightGBM, Logistic, and Hybrid all converged to ~Rs. 26.7M Regret, meaning their economic decisions were functionally identical against the current cost boundaries.
-2. **Speed & Complexity**: LightGBM requires vastly fewer resources than the PyTorch Hybrid, achieves the exact same financial outcome, and is easier to trace in a production environment.
-3. **No Sequence Edge**: The Standalone GRU performed extremely poorly (Rs. 82.6M Regret), proving that the temporal sequence history does not inherently provide a massive edge over the static tabular aggregates (Amount, Case Age, Previous Failures) for this specific synthetic generation logic.
+1. **Economically Equivalent**: LightGBM and Hybrid achieved a Regret of Rs. 26,713,663 and Rs. 26,713,165 respectively. The difference is Rs. 498 across 63,731 cases (< 0.01 Rs per case). This is not an economically meaningful advantage for the Hybrid.
+2. **Rule Enforcement**: Per the gate condition, because they are economically equivalent, the simpler tabular model (LightGBM) is strictly preferred to avoid unnecessary neural network infrastructure complexity.
+3. **No Sequence Edge**: The Standalone GRU and Transformer performed terribly (Rs. 82.6M Regret), proving the temporal sequences alone are mathematically insufficient without strong tabular aggregates (case amount, age, prior failures).
 
 **Why Other Models Lost:**
-- **Hybrid**: Over-engineered for the current world model complexity. Achieved slightly higher AUC (0.7036 vs 0.6935) but it **failed to translate into better economic utility**.
+- **Hybrid**: Over-engineered. While it achieved slightly higher AUC (0.7034 vs 0.6934) and better Brier score (0.2182 vs 0.2209), this **failed to translate into a meaningful economic utility advantage**.
 - **Transformer & GRU**: Failed to generalize on sequences alone, making vastly inferior economic decisions.
 
 ## 7. Known Limitations
