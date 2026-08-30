@@ -1,0 +1,29 @@
+{
+  "seed": 42,
+  "num_customers": 25000,
+  "num_merchants": 1000,
+  "num_cases": 200000,
+  "total_events": 382264,
+  "actions": [
+    "CREATE_PAYMENT_LINK",
+    "RETRY_PAYMENT",
+    "SEND_REMINDER",
+    "ESCALATE_TO_SUPPORT",
+    "NO_ACTION"
+  ],
+  "action_costs_paise": {
+    "CREATE_PAYMENT_LINK": 250,
+    "RETRY_PAYMENT": 100,
+    "SEND_REMINDER": 50,
+    "ESCALATE_TO_SUPPORT": 5000,
+    "NO_ACTION": 0
+  },
+  "horizons": [
+    1,
+    6,
+    24,
+    72,
+    168
+  ],
+  "date_range": "2025-01-01T00:00:00 to 2025-12-31T00:00:00"
+}
