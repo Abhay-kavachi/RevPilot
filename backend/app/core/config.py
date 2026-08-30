@@ -54,6 +54,7 @@ class AppSettings(BaseSettings):
     
     # SAFE DEVELOPMENT DEFAULT (Can be overridden in production)
     WORKER_POLL_INTERVAL: int = 5
+    ML_ENABLED: bool = True
     
     # BUSINESS POLICY boundaries are defined in policy.json, not here.
     

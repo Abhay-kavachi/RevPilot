@@ -12,6 +12,7 @@ class ActionEvaluation(BaseModel):
     friction: int
     risk: int
     final_enr: int
+    probability_source: str
     is_eligible: bool = True
 
 class EconomicEngine:
@@ -32,7 +33,7 @@ class EconomicEngine:
         for action in self.recovery.allowed_actions:
             if action == "CLOSE_CASE" or action == "NO_ACTION":
                 evaluations.append(ActionEvaluation(
-                    action_type=action, expected_value=0, success_probability=0.0, cost=0, friction=0, risk=0, final_enr=0
+                    action_type=action, expected_value=0, success_probability=0.0, cost=0, friction=0, risk=0, final_enr=0, probability_source="DETERMINISTIC"
                 ))
                 continue
                 
@@ -45,9 +46,9 @@ class EconomicEngine:
                 raise KeyError(f"Missing monetary configuration for action {action}")
             
             # 2. Predict success probability
-            if ml_predictor is not None:
+            if ml_predictor is not None and ml_predictor.available:
                 # ML Probabilistic Engine
-                p_success = ml_predictor.predict_recovery(
+                pred_result = ml_predictor.predict_recovery(
                     amount_at_risk_paise=amount_at_risk,
                     age_hours=age_hours,
                     recent_30d_failures=recent_30d_failures,
@@ -55,6 +56,8 @@ class EconomicEngine:
                     action=action,
                     horizon="72h"
                 )
+                p_success = pred_result.probability
+                prob_source = pred_result.source
             else:
                 # Fallback Heuristic Engine
                 base_prob = self.policy.get_base_probability(action)
@@ -64,6 +67,7 @@ class EconomicEngine:
                 history_factor = customer_history_score
                 
                 p_success = base_prob * reason_factor * attempt_factor * age_factor * history_factor
+                prob_source = "POLICY_FALLBACK"
                 
             p_success = max(0.0, min(1.0, p_success)) # Technical invariant: Probability bounds
             
@@ -78,7 +82,8 @@ class EconomicEngine:
                 cost=cost,
                 friction=friction,
                 risk=risk,
-                final_enr=enr
+                final_enr=enr,
+                probability_source=prob_source
             ))
             
         return sorted(evaluations, key=lambda x: x.final_enr, reverse=True)

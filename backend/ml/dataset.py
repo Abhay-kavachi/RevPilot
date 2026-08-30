@@ -106,13 +106,14 @@ def prepare_data(filepath=None):
     # One-hot encode actions
     df = pd.get_dummies(df, columns=["action"])
 
-    # Tabular features: amount (log-normed), case_age, failures, step, + one-hot actions
-    tabular_features = [
-        "amount_at_risk_paise_log",
-        "case_age_hours",
-        "recent_30d_failures",
-        "step",
-    ] + [c for c in df.columns if c.startswith("action_") and c != "action_timestamp"]
+    # Enforce static FeatureSchema
+    from ml.features import FeatureSchema
+    tabular_features = FeatureSchema.features
+    
+    # Ensure all required one-hot columns exist (even if 0 occurrences in this fold)
+    for col in tabular_features:
+        if col not in df.columns:
+            df[col] = 0.0
 
     df["amount_at_risk_paise_log"] = np.log1p(df["amount_at_risk_paise"])
 
