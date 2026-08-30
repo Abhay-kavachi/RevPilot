@@ -53,7 +53,7 @@ The benchmark was run strictly and natively looping across 3 seeds (`[42, 123, 2
 *Note on Inference:* Times are for total batch inference on 63,731 cases using CPU. While LightGBM and Hybrid show similar batch inference times (~400ms total), LightGBM offers lower model/deployment complexity by avoiding PyTorch infrastructure dependencies.
 
 ## 6. Paired Model Comparison (Hybrid vs LightGBM)
-To definitively prove statistical significance (or lack thereof), a paired case-level bootstrap analysis (10,000 resamples) was executed across the `N=63,731` test cases (Seed 42).
+To rigorously evaluate statistical significance (or lack thereof), a paired case-level bootstrap analysis (10,000 resamples) was executed across the `N=63,731` test cases (Seed 42).
 
 **Case-Level Analysis (Hybrid Utility - LightGBM Utility):**
 - **Mean Difference**: Rs. -0.0494 per case

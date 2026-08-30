@@ -122,17 +122,30 @@
                 // Fetch Decisions
                 const decRes = await fetch(`${API_BASE}/cases/${caseId}/decisions`);
                 const decisions = await decRes.json();
-                let decHtml = decisions.map(d => `
-                    <div class="border-l-4 ${d.is_selected ? 'border-green-500 bg-green-50' : 'border-gray-200'} pl-4 py-2">
-                        <div class="font-semibold text-sm">${d.action_type} ${d.is_selected ? '✅ SELECTED' : ''}</div>
-                        <div class="text-xs text-gray-600 grid grid-cols-2 gap-1 mt-1">
-                            <div>ENR: ₹${(d.final_enr/100).toFixed(2)}</div>
-                            <div>EV: ₹${(d.expected_value/100).toFixed(2)}</div>
-                            <div>Prob: ${(d.success_probability*100).toFixed(1)}%</div>
-                            <div>Cost/Fric/Risk: ₹${((d.cost+d.friction+d.risk)/100).toFixed(2)}</div>
+                let decHtml = decisions.map(d => {
+                    const meta = d.metadata_blob || {};
+                    const source = meta.source || "UNKNOWN";
+                    const prov = meta.provenance || {};
+                    const modelVer = prov.model_version ? `(Model: ${prov.model_version})` : "";
+                    
+                    const isSelected = meta.is_selected;
+                    const borderColor = isSelected ? 'border-green-500' : 'border-blue-500';
+                    const bgColor = isSelected ? 'bg-green-50' : 'bg-gray-50';
+                    
+                    return `
+                    <div class="border-l-4 ${borderColor} ${bgColor} pl-4 py-2 mb-2 rounded shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <div class="font-semibold text-sm">${d.action_type} ${isSelected ? '✅ SELECTED' : ''}</div>
+                            <div class="text-xs font-bold text-white bg-blue-600 px-2 py-1 rounded">${source} ${modelVer}</div>
+                        </div>
+                        <div class="text-xs text-gray-800 grid grid-cols-2 gap-2 mt-2">
+                            <div><span class="text-gray-500">Probability:</span> ${(d.success_probability*100).toFixed(1)}%</div>
+                            <div><span class="text-gray-500">Exp. Value (EV):</span> ₹${(d.expected_value/100).toFixed(2)}</div>
+                            <div><span class="text-gray-500">Cost & Friction:</span> ₹${((d.cost+d.friction+d.risk)/100).toFixed(2)}</div>
+                            <div class="font-bold"><span class="text-gray-500">Final ENR:</span> ₹${(d.final_enr/100).toFixed(2)}</div>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
                 document.getElementById('decisions-body').innerHTML = decHtml || '<p class="text-gray-500 text-sm">No decisions found.</p>';
 
                 // Fetch Audit

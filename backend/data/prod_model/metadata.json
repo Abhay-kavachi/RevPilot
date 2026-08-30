@@ -1,0 +1,26 @@
+{
+  "model_version": "LightGBM_Prod_v1.0",
+  "feature_schema_version": "1.0.0",
+  "horizons": [
+    "1h",
+    "6h",
+    "24h",
+    "72h",
+    "168h"
+  ],
+  "features": [
+    "amount_at_risk_paise_log",
+    "case_age_hours",
+    "recent_30d_failures",
+    "step",
+    "action_CREATE_PAYMENT_LINK",
+    "action_ESCALATE_TO_SUPPORT",
+    "action_NO_ACTION",
+    "action_RETRY_PAYMENT",
+    "action_SEND_REMINDER"
+  ],
+  "expected_count": 9,
+  "calibration_version": "isotonic_1.0",
+  "dataset_version": "world_model_events_seed42",
+  "world_model_version": "2.0"
+}

@@ -19,7 +19,7 @@ This document certifies the final integration of the Phase 2 ML Serving layer in
 
 ## Test Suite Execution
 `pytest .` was run across the entire codebase to guarantee there are no regressions to the core accounting system.
-* **Total Tests Passed:** 58 / 58
+* **Total Tests Passed:** 59 / 59
 * **PostgreSQL Accounting & State Machine Tests:** Passed. Verified full recovery, overpayment ceilings, partial payments.
 * **Concurrency Protection Tests:** Passed. Verified row-level lock safety and replay resilience.
 * **Real Razorpay/Test Mode Suite:** Passed.

@@ -61,8 +61,10 @@ def test_policy_drives_economic_engine(mock_policy_file):
     # Load custom policy
     manager = PolicyManager(policy_path=mock_policy_file)
     
-    # Override the global manager inside engine
-    with patch("app.economics.engine.policy_manager", manager):
+    # Override the global manager inside engine, and disable ML predictor so it falls back to policy
+    with patch("app.economics.engine.policy_manager", manager), \
+         patch("app.economics.ml_predictor.ml_predictor.available", False):
+         
         engine = EconomicEngine()
         
         # Test 1: Base probabilities apply (with 'unknown' failure reason multiplier of 0.6)

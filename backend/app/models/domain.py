@@ -96,6 +96,7 @@ class CaseDecision(Base):
     
     is_selected = Column(Boolean, default=False)
     policy_rejection_reason = Column(String(L.EMAIL_MAX_LENGTH))
+    metadata_blob = Column(JSON)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
