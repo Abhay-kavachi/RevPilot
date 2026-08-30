@@ -5,8 +5,8 @@
 **Script:** "Every payment gateway offers retries. But generic retries have a fatal flaw: they optimize for gross conversion, ignoring the cost of recovery. They will happily spend ₹50 in SMS fees and brand friction to chase a ₹100 payment that the customer was never going to complete anyway. Revenue at risk is not the same as revenue worth chasing. Enter RevPilot."
 
 ### [0:30 - 1:15] Real Case (Product Demo)
-**Visual:** Open RevPilot Dashboard side-by-side with the Terminal. Inject a ₹50,000 High-Value case and a ₹28 Marginal-Value case.
-**Script:** "RevPilot is an autonomous, post-abandonment recovery engine. Let's look at two failed payments that just hit our webhook. One is a high-value ₹50k transaction from an established customer. The other is a marginal ₹28 transaction failing for insufficient funds."
+**Visual:** Open RevPilot Dashboard side-by-side with the Terminal. Inject a high-value ₹50k case, a marginal ₹28 case, and a low-value ₹5 case.
+**Script:** "RevPilot is an autonomous, post-abandonment recovery engine. Let's look at three failed payments that just hit our webhook. One is a ₹50k transaction from an established customer, one is a marginal ₹28 transaction, and one is a ₹5 transaction failing for insufficient funds. Why didn't RevPilot just retry all of them? Because the expected net return wasn't there."
 
 ### [1:15 - 2:00] ML Probabilities
 **Visual:** Show the Terminal output / Dashboard displaying the Action-Conditioned ML Probabilities.
@@ -14,7 +14,7 @@
 
 ### [2:00 - 2:40] Economic Ranking
 **Visual:** Highlight the Expected Net Return (ENR) column.
-**Script:** "But probabilities aren't enough. Our deterministic Economic Engine maps these probabilities against the merchant's financial policy. For the ₹50k case, a 71.3% probability yields a massive Expected Value, easily covering the ₹2.50 cost. It executes the Payment Link. But look at the ₹28 case. A Payment Link has a high 73.6% success rate, yielding a net return of ₹13.10. But a simple Reminder has a much lower 56% success rate, yet its costs are so low that it yields a higher net return of ₹13.20. RevPilot intelligently down-selects to the cheaper action, saving the merchant money."
+**Script:** "But probabilities aren't enough. Our deterministic Economic Engine maps these probabilities against the merchant's financial policy. For the ₹50k case, a 71.3% probability yields a massive Expected Value, easily covering the ₹2.50 cost. It executes the Payment Link. But look at the ₹28 case. A Payment Link has a high 73.6% success rate, yielding a net return of ₹13.10. But a simple Reminder has a much lower 56% success rate, yet its costs are so low that it yields a higher net return of ₹13.20. RevPilot intelligently down-selects to the cheaper action. And for the ₹5 case? RevPilot also knows when the economically correct recovery action is no action."
 
 ### [2:40 - 3:30] Real Razorpay Execution & Webhooks
 **Visual:** Open Razorpay Test Dashboard. Click the Payment Link. Show the Webhook securely clearing the case in the UI.

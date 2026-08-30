@@ -103,11 +103,25 @@ def main():
     )
     db.add(case_B)
     
+    # CASE C: Hard Stop Case (Negative ENR)
+    case_C = RevenueRiskCase(
+        id="case_hard_stop",
+        merchant_id="merchant_demo",
+        customer_id="cust_C",
+        case_type="failed_payment",
+        amount_at_risk=500,  # ₹5
+        amount_recovered=0,
+        status=CaseStatus.OPEN,
+        attempt_count=2
+    )
+    db.add(case_C)
+    
     db.commit()
 
     print("\n[RevPilot] Running ML Predictor & Economic Engine...\n")
     process_case(db, case_A, "CASE A: HIGH VALUE RECOVERY", "Amount = 50,000 INR | Loyal | Recent Failures = 0", history_score=1.0, recent_failures=0)
     process_case(db, case_B, "CASE B: MARGINAL VALUE (Probability vs Cost)", "Amount = 28 INR | High Risk | Recent Failures = 1", history_score=0.0, recent_failures=1)
+    process_case(db, case_C, "CASE C: NEGATIVE EXPECTED NET RETURN (STOP)", "Amount = 5 INR | High Risk | Recent Failures = 3", history_score=0.0, recent_failures=3)
 
     print("\n[RevPilot] Demo setup complete. Cases and Decisions are now visible in the Dashboard.")
 
