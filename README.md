@@ -7,7 +7,7 @@ Revenue at risk isn't the same as revenue worth chasing. RevPilot evaluates the 
 ## What RevPilot Does
 RevPilot operates as an asynchronous, post-abandonment recovery agent. When a payment fails:
 1. **Context + Candidate Action:** The system feeds the customer context and potential interventions to our ML predictor.
-2. **ML Recovery Probability:** A LightGBM model calculates the precise probability of recovery *conditioned on that specific action* (e.g. 63% for a Payment Link vs 50% for a Silent Retry).
+2. **ML Recovery Probability:** A LightGBM model calculates the precise probability of recovery *conditioned on that specific action* (e.g. 71.3% for a Payment Link vs 58.1% for a Silent Retry).
 3. **Economic Value:** The Economic Engine maps this probability against the transaction amount and subtracts the exact cost and friction of the intervention.
 4. **Policy Gate:** If the Expected Net Return (ENR) is negative, the system halts. If positive, the intervention is approved.
 5. **Bounded Execution:** RevPilot securely calls the Razorpay API to execute the intervention (e.g., creating a Payment Link) and listens for the verified HMAC-SHA256 webhook to close the case.
@@ -33,13 +33,13 @@ This prototype was built with real engineering constraints. We implemented and t
 
 ## The Economic Decision
 If a **₹50,000** transaction fails for a loyal customer:
-* ML predicts a 63% recovery probability for `CREATE_PAYMENT_LINK`.
-* `(500,000 paise * 0.63) - 250 paise (SMS cost) - 500 paise (Friction) = +317,316 paise ENR`.
+* ML predicts a 71.33% recovery probability for `CREATE_PAYMENT_LINK`.
+* `(5,000,000 paise * 0.7133) - 250 paise (Cost) - 500 paise (Friction) = +3,565,731 paise ENR`.
 * **Decision: Execute.**
 
-If a **₹50** transaction fails for insufficient funds:
-* ML predicts a 15% recovery probability.
-* `(500 paise * 0.15) - 250 paise (SMS cost) - 500 paise (Friction) = -675 paise ENR`.
+If a **₹5** transaction fails for insufficient funds:
+* ML predicts a 71.14% recovery probability for `CREATE_PAYMENT_LINK`.
+* `(500 paise * 0.7114) - 250 paise (Cost) - 500 paise (Friction) = -395 paise ENR`.
 * **Decision: NO_ACTION (Halt).**
 
 ## Benchmark 
@@ -51,7 +51,7 @@ Across all seeds, RevPilot mathematically outperformed a `MAX_RETRY` strategy on
 ## Security & Reliability
 Built for enterprise stability:
 * **PostgreSQL Concurrency:** `FOR UPDATE SKIP LOCKED` guarantees webhook deduplication and prevents polling race conditions.
-* **Strict State Machine:** Adheres to deterministic `OPEN -> IN_PROGRESS -> RECOVERED/FAILED` transitions.
+* **Strict State Machine:** Adheres to deterministic `OPEN -> ASSESSING -> EXECUTING -> WAITING_FOR_OUTCOME -> RECOVERED` transitions.
 * **Feature Schema Validation:** The ML Predictor will refuse to load if the runtime `metadata.json` schema version mismatches the trained artifact (`MODEL_SCHEMA_MISMATCH`).
 
 ## Architecture

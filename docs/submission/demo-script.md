@@ -5,16 +5,16 @@
 **Script:** "Every payment gateway offers retries. But generic retries have a fatal flaw: they optimize for gross conversion, ignoring the cost of recovery. They will happily spend ₹50 in SMS fees and brand friction to chase a ₹100 payment that the customer was never going to complete anyway. Revenue at risk is not the same as revenue worth chasing. Enter RevPilot."
 
 ### [0:30 - 1:15] Real Case (Product Demo)
-**Visual:** Open RevPilot Dashboard side-by-side with the Terminal. Inject a ₹50,000 High-Value case and a ₹50 Low-Value case.
-**Script:** "RevPilot is an autonomous, post-abandonment recovery engine. Let's look at two failed payments that just hit our webhook. One is a high-value ₹50k transaction from an established customer. The other is a ₹50 transaction failing for insufficient funds."
+**Visual:** Open RevPilot Dashboard side-by-side with the Terminal. Inject a ₹50,000 High-Value case and a ₹5 Low-Value case.
+**Script:** "RevPilot is an autonomous, post-abandonment recovery engine. Let's look at two failed payments that just hit our webhook. One is a high-value ₹50k transaction from an established customer. The other is a ₹5 transaction failing for insufficient funds."
 
 ### [1:15 - 2:00] ML Probabilities
 **Visual:** Show the Terminal output / Dashboard displaying the Action-Conditioned ML Probabilities.
-**Script:** "Instead of static rules, RevPilot passes the context and candidate actions to our LightGBM Machine Learning model. The model calculates the exact probability of recovery *conditioned on the action we take*. For the ₹50k case, sending a Payment Link has a 63% probability of success. Retrying silently only has 50%."
+**Script:** "Instead of static rules, RevPilot passes the context and candidate actions to our LightGBM Machine Learning model. The model calculates the exact probability of recovery *conditioned on the action we take*. For the ₹50k case, sending a Payment Link has a 71.3% probability of success. Retrying silently only has 58%."
 
 ### [2:00 - 2:40] Economic Ranking
 **Visual:** Highlight the Expected Net Return (ENR) column.
-**Script:** "But probabilities aren't enough. Our deterministic Economic Engine maps these probabilities against the merchant's financial policy. For the ₹50k case, a 63% probability yields a massive Expected Value, easily covering the ₹2.50 SMS cost. It executes the Payment Link. But look at the ₹50 case. The model predicts a 15% success rate. The Expected Value is just ₹7.50. The SMS costs ₹2.50, and the brand friction is ₹5.00. Net return? Zero. RevPilot intelligently halts, saving the merchant money."
+**Script:** "But probabilities aren't enough. Our deterministic Economic Engine maps these probabilities against the merchant's financial policy. For the ₹50k case, a 71.3% probability yields a massive Expected Value, easily covering the ₹2.50 cost. It executes the Payment Link. But look at the ₹5 case. Even though the model predicts a 71% success rate, the Expected Value is just ₹3.55. The SMS costs ₹2.50, and the brand friction is ₹5.00. The Net Return is deeply negative. RevPilot intelligently halts, saving the merchant money."
 
 ### [2:40 - 3:30] Real Razorpay Execution & Webhooks
 **Visual:** Open Razorpay Test Dashboard. Click the Payment Link. Show the Webhook securely clearing the case in the UI.

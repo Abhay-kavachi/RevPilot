@@ -61,7 +61,7 @@ def process_case(db, case, title, context, history_score, recent_failures):
         )
         db.add(decision)
     
-    case.transition_to(CaseStatus.IN_PROGRESS)
+    case.transition_to(CaseStatus.ASSESSING)
     db.add(AuditEvent(
         case_id=case.id,
         event_type="DECISION_MADE",
@@ -96,7 +96,7 @@ def main():
         merchant_id="merchant_demo",
         customer_id="cust_B",
         case_type="failed_payment",
-        amount_at_risk=5000,  # ₹50
+        amount_at_risk=500,  # ₹5
         amount_recovered=0,
         status=CaseStatus.OPEN,
         attempt_count=2
@@ -107,7 +107,7 @@ def main():
 
     print("\n[RevPilot] Running ML Predictor & Economic Engine...\n")
     process_case(db, case_A, "CASE A: HIGH VALUE RECOVERY", "Amount = 50,000 INR | Loyal | Recent Failures = 0", history_score=1.0, recent_failures=0)
-    process_case(db, case_B, "CASE B: LOW VALUE / HIGH FRICTION", "Amount = 50 INR | High Risk | Recent Failures = 5", history_score=0.2, recent_failures=5)
+    process_case(db, case_B, "CASE B: LOW VALUE / HIGH FRICTION", "Amount = 5 INR | High Risk | Recent Failures = 5", history_score=0.2, recent_failures=5)
 
     print("\n[RevPilot] Demo setup complete. Cases and Decisions are now visible in the Dashboard.")
 
