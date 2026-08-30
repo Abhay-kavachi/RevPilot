@@ -7,7 +7,7 @@ from app.economics.portfolio import RecoveryPortfolioOptimizer
 
 def print_portfolio(result, budget_paise):
     print("=========================================================================================")
-    print("OPTIONAL EXTENSION: PORTFOLIO VIEW (MERCHANT CAPITAL ALLOCATION)")
+    print("SYNTHETIC PORTFOLIO BENCHMARK (MERCHANT CAPITAL ALLOCATION)")
     print("=========================================================================================")
     print(f"Recovery Budget       : {budget_paise / 100:,.2f} INR")
     print(f"Selected Actions      : {len(result.selected_actions)}")

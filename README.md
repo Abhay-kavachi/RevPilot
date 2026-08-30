@@ -81,7 +81,7 @@ Given a strict **Merchant Recovery Budget**, RevPilot doesn't just greedily drop
 **What this means practically:**
 If budget is tight, RevPilot might intentionally *downgrade* an intervention on a mid-value case (e.g., opting for a 50 paise SMS instead of a 250 paise Payment Link) to free up budget for a high-value case that yields significantly more expected return.
 
-*Run the technical spike locally to see it downgrade interventions to maximize global yield:*
+*Run the **Synthetic Portfolio Benchmark** locally to see it downgrade interventions to maximize global yield:*
 `ash
 python scripts/run_portfolio.py
 `
