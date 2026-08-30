@@ -42,6 +42,8 @@ class FeatureBuilder:
             action_col = f"action_{action}"
             if action_col in self.schema.features:
                 x[self.schema.features.index(action_col)] = 1.0
+            else:
+                raise ValueError(f"Unknown action '{action}' is not in the canonical schema.")
         except ValueError as e:
             raise ValueError(f"Feature error: {e}")
             

@@ -12,6 +12,9 @@ class PredictionResult(BaseModel):
     source: str
     model_version: str
     feature_schema_version: str
+    calibration_version: str
+    dataset_version: str
+    world_model_version: str
     horizon: str
 
 class MLPredictor:
@@ -63,6 +66,9 @@ class MLPredictor:
                 source="ML_DETERMINISTIC", 
                 model_version=self.metadata.get('model_version', 'Unknown'), 
                 feature_schema_version=self.metadata.get('feature_schema_version', 'Unknown'), 
+                calibration_version=self.metadata.get('calibration_version', 'Unknown'),
+                dataset_version=self.metadata.get('dataset_version', 'Unknown'),
+                world_model_version=self.metadata.get('world_model_version', 'Unknown'),
                 horizon=horizon
             )
 
@@ -82,6 +88,9 @@ class MLPredictor:
             source="ML",
             model_version=self.metadata.get('model_version', 'Unknown'),
             feature_schema_version=self.metadata.get('feature_schema_version', 'Unknown'),
+            calibration_version=self.metadata.get('calibration_version', 'Unknown'),
+            dataset_version=self.metadata.get('dataset_version', 'Unknown'),
+            world_model_version=self.metadata.get('world_model_version', 'Unknown'),
             horizon=horizon
         )
 

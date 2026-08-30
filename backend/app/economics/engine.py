@@ -14,6 +14,7 @@ class ActionEvaluation(BaseModel):
     final_enr: int
     probability_source: str
     is_eligible: bool = True
+    provenance: Dict[str, Any] = {}
 
 class EconomicEngine:
     """
@@ -33,7 +34,7 @@ class EconomicEngine:
         for action in self.recovery.allowed_actions:
             if action == "CLOSE_CASE" or action == "NO_ACTION":
                 evaluations.append(ActionEvaluation(
-                    action_type=action, expected_value=0, success_probability=0.0, cost=0, friction=0, risk=0, final_enr=0, probability_source="DETERMINISTIC"
+                    action_type=action, expected_value=0, success_probability=0.0, cost=0, friction=0, risk=0, final_enr=0, probability_source="DETERMINISTIC", provenance={}
                 ))
                 continue
                 
@@ -45,6 +46,7 @@ class EconomicEngine:
             if cost is None or friction is None or risk is None:
                 raise KeyError(f"Missing monetary configuration for action {action}")
             
+            provenance = {}
             # 2. Predict success probability
             if ml_predictor is not None and ml_predictor.available:
                 # ML Probabilistic Engine
@@ -58,6 +60,14 @@ class EconomicEngine:
                 )
                 p_success = pred_result.probability
                 prob_source = pred_result.source
+                provenance = {
+                    "model_version": pred_result.model_version,
+                    "feature_schema_version": pred_result.feature_schema_version,
+                    "calibration_version": pred_result.calibration_version,
+                    "dataset_version": pred_result.dataset_version,
+                    "world_model_version": pred_result.world_model_version,
+                    "horizon": pred_result.horizon
+                }
             else:
                 # Fallback Heuristic Engine
                 base_prob = self.policy.get_base_probability(action)
@@ -83,7 +93,8 @@ class EconomicEngine:
                 friction=friction,
                 risk=risk,
                 final_enr=enr,
-                probability_source=prob_source
+                probability_source=prob_source,
+                provenance=provenance
             ))
             
         return sorted(evaluations, key=lambda x: x.final_enr, reverse=True)

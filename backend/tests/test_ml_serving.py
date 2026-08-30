@@ -16,13 +16,16 @@ def test_structural_no_razorpay_imports():
 
 def test_feature_builder_parity():
     """
-    Assert exact order parity between training features and production features.
+    Assert exact order parity between actual training pipeline and production FeatureBuilder.
     """
     import pandas as pd
+    from unittest.mock import patch
     from ml.features import FeatureBuilder, FeatureSchema
+    from ml.dataset import prepare_data
     
     # Simulate a row of raw event data (mimicking the parquet row)
     raw_data = {
+        "action_timestamp": [pd.Timestamp("2025-05-01 10:00:00")], # Month 5 goes to train_df
         "amount_at_risk_paise": [50000],
         "case_age_hours": [24.0],
         "recent_30d_failures": [2],
@@ -32,14 +35,13 @@ def test_feature_builder_parity():
     df = pd.DataFrame(raw_data)
     
     # === OFFLINE (TRAINING) PIPELINE ===
-    df_train = pd.get_dummies(df, columns=["action"])
-    for col in FeatureSchema.features:
-        if col not in df_train.columns:
-            df_train[col] = 0.0
-    df_train["amount_at_risk_paise_log"] = np.log1p(df_train["amount_at_risk_paise"])
+    # We patch read_parquet to return our tiny dataframe, 
+    # forcing prepare_data to execute the real training transformations on it.
+    with patch("pandas.read_parquet", return_value=df):
+        train_df, _, _, _ = prepare_data("dummy_path.parquet")
     
-    # The offline vector that would go to training
-    offline_vector = df_train.iloc[0][FeatureSchema.features].values.astype(np.float32)
+    # The offline vector that would actually go into the Dataset
+    offline_vector = train_df.iloc[0][FeatureSchema.features].values.astype(np.float32)
     
     # === ONLINE (SERVING) PIPELINE ===
     builder = FeatureBuilder()
@@ -73,6 +75,22 @@ def test_schema_validation_failure():
         with patch("builtins.open", mock_open(read_data=json.dumps(bad_metadata))):
             with pytest.raises(RuntimeError, match="MODEL_SCHEMA_MISMATCH"):
                 _ = MLPredictor(model_dir="/fake")
+
+def test_unknown_action_fails():
+    """
+    Ensure the FeatureBuilder explicitly raises an error if an unknown action is passed.
+    """
+    from ml.features import FeatureBuilder
+    builder = FeatureBuilder()
+    
+    with pytest.raises(ValueError, match="Unknown action 'SEND_PIGEON' is not in the canonical schema"):
+        builder.build_single(
+            amount_at_risk_paise=50000,
+            age_hours=24.0,
+            recent_30d_failures=1,
+            attempt_count=1,
+            action="SEND_PIGEON" # Unknown action
+        )
 
 @pytest.mark.skipif(ml_predictor is None or not ml_predictor.available, reason="ML Model not available")
 def test_action_conditioning_changes_probability():
