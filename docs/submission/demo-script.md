@@ -18,7 +18,7 @@
 
 ### [2:40 - 3:30] Real Razorpay Execution & Webhooks
 **Visual:** Open Razorpay Test Dashboard. Click the Payment Link. Show the Webhook securely clearing the case in the UI.
-**Script:** "This isn't just theory. For the high-value case, RevPilot just created a real Razorpay Payment Link via the API. When the customer pays it, Razorpay fires a webhook. RevPilot validates the HMAC-SHA256 signature, idempotently updates the PostgreSQL state machine, and logs the real revenue recovered. No hallucination, just bounded financial execution."
+**Script:** "This isn't just theory. For the high-value case, RevPilot just created a real Razorpay Payment Link via the API. When the customer pays it, Razorpay fires a webhook. RevPilot validates the HMAC-SHA256 signature, idempotently updates the PostgreSQL state machine, and records the recovered Test Mode payment. No hallucination, just bounded financial execution."
 
 ### [3:30 - 4:15] Benchmark & Proof
 **Visual:** Show the `batch_eval.py` Net Recovered Revenue benchmark results.

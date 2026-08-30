@@ -124,7 +124,7 @@
                 const decisions = await decRes.json();
                 let decHtml = decisions.map(d => {
                     const meta = d.metadata_blob || {};
-                    const source = meta.source || "UNKNOWN";
+                    const source = meta.source || "DETERMINISTIC";
                     const prov = meta.provenance || {};
                     const modelVer = prov.model_version ? `(Model: ${prov.model_version})` : "";
                     

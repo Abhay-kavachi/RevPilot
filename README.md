@@ -2,9 +2,7 @@
 An autonomous revenue recovery engine that uses Machine Learning to maximize Expected Net Return (ENR) for Razorpay merchants.
 
 ## The Problem
-Every payment gateway offers retries, but generic retries have a fatal flaw: they optimize for gross conversion while ignoring the cost of recovery. They will happily spend ₹50 in SMS fees and brand friction to chase a ₹100 payment that the customer was never going to complete. 
-
-**Revenue at risk is not the same as revenue worth chasing.**
+Revenue at risk isn't the same as revenue worth chasing. RevPilot evaluates the next recovery intervention by both its chance of success and its economic cost—and knows when to stop.
 
 ## What RevPilot Does
 RevPilot operates as an asynchronous, post-abandonment recovery agent. When a payment fails:
@@ -15,9 +13,11 @@ RevPilot operates as an asynchronous, post-abandonment recovery agent. When a pa
 5. **Bounded Execution:** RevPilot securely calls the Razorpay API to execute the intervention (e.g., creating a Payment Link) and listens for the verified HMAC-SHA256 webhook to close the case.
 
 ## Why This Is Different
+RevPilot focuses on the economic decision layer for post-failure asynchronous recovery.
 * **Not a naive retry loop:** We explicitly evaluate whether the *next* intervention is economically justified before spending merchant capital.
 * **Not an LLM chatbot:** We intentionally exclude generative AI from the execution path. Financial execution requires deterministic, causally-structured models (LightGBM) bounded by strict economic logic.
-* **Not synchronous checkout routing:** Unlike Razorpay Optimizer (which routes payments during checkout), RevPilot handles the asynchronous human recovery layer hours or days after the terminal failure.
+* **Not synchronous checkout routing (Optimizer):** Unlike Razorpay Optimizer (which routes payments during checkout to prevent failures), RevPilot handles the asynchronous human recovery layer *after* the terminal failure.
+* **Not just workflow automation (Agent Studio):** While Agent Studio can execute recovery steps, RevPilot provides the *economic stopping layer*—the mathematical brain that decides if a step is actually worth taking.
 
 ## Real Razorpay Proof
 This prototype was built with real engineering constraints. We implemented and tested against **Razorpay Test Mode**:
@@ -29,7 +29,7 @@ This prototype was built with real engineering constraints. We implemented and t
 ## Machine Learning
 * **Model:** LightGBM
 * **Prediction:** $P(\text{recovery by horizon} \mid \text{context, candidate action})$
-* **Data (Synthetic):** *The production prototype uses a real ML model trained and evaluated on a causally structured synthetic dataset (100k chronological events). Razorpay Test Mode is used for live payment execution and webhook validation.* 
+* **Data (Synthetic):** *RevPilot uses a real LightGBM recovery-probability model trained and evaluated on a causally structured synthetic world model. Razorpay Test Mode is used for live payment execution and webhook validation.* 
 
 ## The Economic Decision
 If a **₹50,000** transaction fails for a loyal customer:
