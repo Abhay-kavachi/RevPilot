@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from datetime import datetime
 
 class RevPilotDataset(Dataset):
@@ -10,41 +10,87 @@ class RevPilotDataset(Dataset):
         self.tabular_features = tabular_features
         self.seq_length = seq_length
         
-        # Extract matrices for fast access
+        # Extract matrices
         self.tab_data = self.df[self.tabular_features].values.astype(np.float32)
-        
-        # Multi-horizon targets (1h, 6h, 24h, 72h, 168h)
         self.targets = self.df[['target_1h', 'target_6h', 'target_24h', 'target_72h', 'target_168h']].values.astype(np.float32)
         
-        # Sequence data: for now, we just pad with zeros since it's tricky to build full seq 
-        # iteratively in a simple script without grouping. 
-        # But for the world model, we generated rows where `recent_30d_failures` acts as a historical proxy.
-        # Let's create a dummy sequence of length `seq_length` to represent history.
-        # Real implementation would group by customer_id and take rolling windows.
-        # For prototype: (Batch, Seq, Features)
-        self.seq_data = np.zeros((len(self.df), seq_length, 3), dtype=np.float32)
-        
-        
-        # Populate sequence data
-        failures = self.df['recent_30d_failures'].values.astype(int)
-        
-        # Extract action indices
+        # Map actions to integers for the sequence
         actions_map = {"WAIT": 0, "EMAIL": 1, "SMS": 2, "WHATSAPP": 3, "CREATE_PAYMENT_LINK": 4, "RETRY_PAYMENT_OPPORTUNITY": 5}
-        act_idx = np.zeros(len(self.df), dtype=int)
+        
+        # We need a numeric representation for building sequences
+        action_codes = np.zeros(len(self.df), dtype=int)
         for k, v in actions_map.items():
             col = f"action_{k}"
             if col in self.df.columns:
-                act_idx[self.df[col] == 1] = v
+                action_codes[self.df[col] == 1] = v
                 
-        for i in range(len(self.df)):
-            # fill recent steps with failure indicators
-            f_count = min(failures[i], seq_length)
-            if f_count > 0:
-                self.seq_data[i, -f_count-1:-1, 0] = 1.0 # failure indicator
-                
-            # current action
-            self.seq_data[i, -1, 1] = act_idx[i]
-            
+        amounts = self.df["amount_at_risk"].values.astype(np.float32)
+        timestamps = (self.df["action_timestamp"] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
+        timestamps = timestamps.values
+        customer_ids = self.df["customer_id"].values
+        realized_ttr = self.df["realized_ttr"].values.astype(np.float32) * 3600 # convert hours to seconds
+        
+        # Sequence data: (Batch, Seq, Features)
+        # Features: [amount, time_delta_hours, previous_action, recovered_by_now]
+        self.seq_data = np.zeros((len(self.df), seq_length, 4), dtype=np.float32)
+        
+        # Build sequences (Vectorized/Grouped by customer)
+        print(f"Building real temporal sequences for {len(self.df)} events...")
+        
+        # Ensure data is sorted by customer_id and timestamp
+        sort_idx = np.lexsort((timestamps, customer_ids))
+        
+        # Inverse mapping to place sequences back into original dataframe order
+        inv_sort_idx = np.empty_like(sort_idx)
+        inv_sort_idx[sort_idx] = np.arange(len(sort_idx))
+        
+        sorted_cids = customer_ids[sort_idx]
+        sorted_times = timestamps[sort_idx]
+        sorted_amts = amounts[sort_idx]
+        sorted_actions = action_codes[sort_idx]
+        sorted_ttrs = realized_ttr[sort_idx]
+        
+        sorted_seq = np.zeros((len(self.df), seq_length, 4), dtype=np.float32)
+        
+        # Find group boundaries
+        changes = np.where(sorted_cids[:-1] != sorted_cids[1:])[0] + 1
+        starts = np.insert(changes, 0, 0)
+        ends = np.append(changes, len(sorted_cids))
+        
+        for s, e in zip(starts, ends):
+            # Iterate through customer's events
+            for i in range(s, e):
+                # i is the target index. History is [s : i]
+                hist_len = min(i - s, seq_length)
+                if hist_len > 0:
+                    # from max(s, i - seq_length) to i
+                    start_hist = max(s, i - seq_length)
+                    hist_idx = np.arange(start_hist, i)
+                    
+                    # Fill the sequence from the end (right aligned padding)
+                    target_start = seq_length - hist_len
+                    
+                    # Feature 0: Amount
+                    sorted_seq[i, target_start:, 0] = sorted_amts[hist_idx]
+                    
+                    # Feature 1: Time delta (hours) between history event and CURRENT event
+                    time_deltas = (sorted_times[i] - sorted_times[hist_idx]) / 3600.0
+                    sorted_seq[i, target_start:, 1] = time_deltas
+                    
+                    # Feature 2: Previous Action
+                    sorted_seq[i, target_start:, 2] = sorted_actions[hist_idx]
+                    
+                    # Feature 3: Was it recovered BEFORE the current event?
+                    # The historical event occurred at `sorted_times[hist_idx]`.
+                    # It recovers at `sorted_times[hist_idx] + sorted_ttrs[hist_idx]`.
+                    # So if that recovery time <= `sorted_times[i]`, it was recovered.
+                    recovery_times = sorted_times[hist_idx] + sorted_ttrs[hist_idx]
+                    recovered = (recovery_times <= sorted_times[i]).astype(np.float32)
+                    sorted_seq[i, target_start:, 3] = recovered
+                    
+        # Restore original order
+        self.seq_data = sorted_seq[inv_sort_idx]
+        
     def __len__(self):
         return len(self.df)
         
@@ -62,10 +108,10 @@ def prepare_data(filepath="data/world_model_events.parquet"):
     # Sort by time to ensure strict temporal split
     df = df.sort_values("action_timestamp").reset_index(drop=True)
     
-    # Encode categorical actions
+    # Encode categorical actions for tabular
     df = pd.get_dummies(df, columns=["action"])
     
-    # Define tabular features
+    # Define tabular features (excluding any target leakage fields)
     tabular_features = [
         "amount_at_risk", 
         "case_age_hours",
@@ -73,14 +119,13 @@ def prepare_data(filepath="data/world_model_events.parquet"):
         "step"
     ] + [c for c in df.columns if c.startswith("action_") and c != "action_timestamp"]
     
-    # Normalize amount
+    # Normalize amount for neural nets
     df["amount_at_risk"] = np.log1p(df["amount_at_risk"])
     
     # Temporal Split:
     # Train: Months 1-8
     # Val: Months 9-10
     # Test: Months 11-12
-    
     df['month'] = df['action_timestamp'].dt.month
     
     train_df = df[df['month'] <= 8].copy()
@@ -89,4 +134,4 @@ def prepare_data(filepath="data/world_model_events.parquet"):
     
     print(f"Split sizes -> Train: {len(train_df)}, Val: {len(val_df)}, Test: {len(test_df)}")
     
-    return train_df, val_df, test_df, tabular_features
+    return train_df, val_df, test_df, tabular_features, df
