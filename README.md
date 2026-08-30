@@ -37,10 +37,10 @@ If a **₹50,000** transaction fails for a loyal customer:
 * `(5,000,000 paise * 0.7133) - 250 paise (Cost) - 500 paise (Friction) = +3,565,731 paise ENR`.
 * **Decision: Execute.**
 
-If a **₹5** transaction fails for insufficient funds:
-* ML predicts a 71.14% recovery probability for `CREATE_PAYMENT_LINK`.
-* `(500 paise * 0.7114) - 250 paise (Cost) - 500 paise (Friction) = -395 paise ENR`.
-* **Decision: NO_ACTION (Halt).**
+If a **₹28** transaction fails (marginal value case):
+* ML predicts a **73.59%** recovery probability for `CREATE_PAYMENT_LINK` (ENR: `2060 - 750 = +1310 paise`).
+* ML predicts only a **56.08%** recovery probability for `SEND_REMINDER` (ENR: `1570 - 250 = +1320 paise`).
+* **Decision: SEND_REMINDER.** RevPilot intelligently down-selects to a lower-probability, cheaper intervention because the net economic yield is higher.
 
 ## Benchmark 
 *(Tested on 5 independent synthetic seed populations of 100 cases)*

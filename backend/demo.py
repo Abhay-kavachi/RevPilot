@@ -96,10 +96,10 @@ def main():
         merchant_id="merchant_demo",
         customer_id="cust_B",
         case_type="failed_payment",
-        amount_at_risk=500,  # ₹5
+        amount_at_risk=2800,  # ₹28
         amount_recovered=0,
         status=CaseStatus.OPEN,
-        attempt_count=2
+        attempt_count=1
     )
     db.add(case_B)
     
@@ -107,7 +107,7 @@ def main():
 
     print("\n[RevPilot] Running ML Predictor & Economic Engine...\n")
     process_case(db, case_A, "CASE A: HIGH VALUE RECOVERY", "Amount = 50,000 INR | Loyal | Recent Failures = 0", history_score=1.0, recent_failures=0)
-    process_case(db, case_B, "CASE B: LOW VALUE / HIGH FRICTION", "Amount = 5 INR | High Risk | Recent Failures = 5", history_score=0.2, recent_failures=5)
+    process_case(db, case_B, "CASE B: MARGINAL VALUE (Probability vs Cost)", "Amount = 28 INR | High Risk | Recent Failures = 1", history_score=0.0, recent_failures=1)
 
     print("\n[RevPilot] Demo setup complete. Cases and Decisions are now visible in the Dashboard.")
 
