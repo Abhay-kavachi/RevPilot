@@ -21,4 +21,4 @@ Traditional dunning systems (e.g., Stripe Billing retries, Chargebee) use static
 
 ## 4. Why Not Razorpay Agent Studio?
 Razorpay Agent Studio provides the components to build generative AI support workflows. 
-* **RevPilot's Role:** RevPilot is not a chat bot. It does not use LLMs to guess at recovery. It uses tabular/temporal Machine Learning (LightGBM) because predicting precise financial probability requires deterministic, causally-structured models, not generative text. RevPilot's strict `Predict -> Value -> Policy -> Act` bounded architecture guarantees financial safety that free-form LLM agents cannot.
+* **RevPilot's Role:** RevPilot is not a chat bot. It does not use LLMs to guess at recovery. It uses tabular/temporal Machine Learning (LightGBM) because predicting precise financial probability requires deterministic, causally-structured models, not generative text. RevPilot's strict `Predict -> Value -> Policy -> Act` bounded architecture enforces financial safety that free-form LLM agents cannot.

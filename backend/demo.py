@@ -13,15 +13,15 @@ def print_evaluation(title, context, evaluations):
     print(f"==========================================================================================")
     print(f"Context: {context}")
     print("-" * 90)
-    print(f"{'Action':<25} | {'Prob':<6} | {'EV (Paise)':<12} | {'Cost':<6} | {'Frict':<6} | {'ENR (Paise)':<12}")
-    print("-" * 90)
+    print(f"{'Action':<25} | {'Prob':<6} | {'EV (Paise)':<12} | {'Cost':<6} | {'Frict':<6} | {'Risk':<6} | {'ENR (Paise)':<12}")
+    print("-" * 100)
     
     for ev in evaluations:
         prob_str = f"{ev.success_probability:.4f}"
-        print(f"{ev.action_type:<25} | {prob_str:<6} | {ev.expected_value:<12} | {ev.cost:<6} | {ev.friction:<6} | {ev.final_enr:<12}")
+        print(f"{ev.action_type:<25} | {prob_str:<6} | {ev.expected_value:<12} | {ev.cost:<6} | {ev.friction:<6} | {ev.risk:<6} | {ev.final_enr:<12}")
         
     best_action = evaluations[0]
-    print("-" * 90)
+    print("-" * 100)
     print(f"FINAL DECISION: {best_action.action_type} (ENR: {best_action.final_enr})")
     print(f"PROBABILITY SOURCE: {best_action.probability_source}")
     print("==========================================================================================\n")
@@ -83,7 +83,7 @@ def main():
         merchant_id="merchant_demo",
         customer_id="cust_A",
         case_type="failed_payment",
-        amount_at_risk=5000000,  # ₹50,000
+        amount_at_risk=5000000,  # 50,000 INR
         amount_recovered=0,
         status=CaseStatus.OPEN,
         attempt_count=0
@@ -96,7 +96,7 @@ def main():
         merchant_id="merchant_demo",
         customer_id="cust_B",
         case_type="failed_payment",
-        amount_at_risk=2800,  # ₹28
+        amount_at_risk=2800,  # 28 INR
         amount_recovered=0,
         status=CaseStatus.OPEN,
         attempt_count=1
@@ -109,7 +109,7 @@ def main():
         merchant_id="merchant_demo",
         customer_id="cust_C",
         case_type="failed_payment",
-        amount_at_risk=500,  # ₹5
+        amount_at_risk=500,  # 5 INR
         amount_recovered=0,
         status=CaseStatus.OPEN,
         attempt_count=2

@@ -35,23 +35,41 @@ This prototype was built with real engineering constraints. We implemented and t
 
 ## The Economic Decision
 
-RevPilot estimates the value of each recovery intervention and decides whether the next action is economically justified.
+RevPilot estimates the value of each recovery intervention and decides whether the next action is economically justified. The core operating principle is that **HIGHER PROBABILITY != HIGHER ECONOMIC VALUE**.
+
+### 🌟 The Hero Case: Marginal Value (₹28)
+A ₹28 payment fails. RevPilot evaluates the top two candidate actions:
+
+**Action 1: CREATE_PAYMENT_LINK**
+* **Probability:** 73.593%
+* **Expected Value:** 2,060 paise int(2800 * 0.73593)
+* **Cost:** 250 paise
+* **Friction:** 500 paise
+* **Risk:** 0 paise
+* **ENR:** +1,310 paise
+
+**Action 2: SEND_REMINDER**
+* **Probability:** 56.084%
+* **Expected Value:** 1,570 paise int(2800 * 0.56084)
+* **Cost:** 50 paise
+* **Friction:** 200 paise
+* **Risk:** 0 paise
+* **ENR:** +1,320 paise
+
+**Selected Action:** SEND_REMINDER. RevPilot intelligently down-selects to a lower-probability, cheaper intervention because the net economic yield is higher.
+
+### Other Scenarios
 
 **CASE A: High Value (₹50,000) — Execute High-Friction Action**
-* ML predicts a 71.33% recovery probability for CREATE_PAYMENT_LINK.
-* (5,000,000 paise * 0.7133) - 250 paise (Cost) - 500 paise (Friction) = +3,565,731 paise ENR.
-* **Decision: CREATE_PAYMENT_LINK.** The high expected value easily absorbs the friction.
-
-**CASE B: Marginal Value (₹28) — Down-select to Cheaper Action**
-* ML predicts a **73.59%** recovery probability for CREATE_PAYMENT_LINK (ENR: 2060 - 750 = +1310 paise).
-* ML predicts only a **56.08%** recovery probability for SEND_REMINDER (ENR: 1570 - 250 = +1320 paise).
-* **Decision: SEND_REMINDER.** RevPilot intelligently down-selects to a lower-probability, cheaper intervention because the net economic yield is higher.
+* ML predicts a **71.329%** recovery probability for CREATE_PAYMENT_LINK.
+* ENR Calculation: int(5,000,000 * 0.71329) - 250 (Cost) - 500 (Friction) = +3,565,731 paise ENR.
+* **Decision:** CREATE_PAYMENT_LINK. The high expected value easily absorbs the friction.
 
 **CASE C: Negative Yield (₹5) — Hard Stop**
-* ML predicts a **71.14%** recovery probability for CREATE_PAYMENT_LINK.
-* (500 paise * 0.7114) - 250 paise (Cost) - 500 paise (Friction) = -395 paise ENR.
+* ML predicts a **71.145%** recovery probability for CREATE_PAYMENT_LINK.
+* ENR Calculation: int(500 * 0.71145) - 250 (Cost) - 500 (Friction) = -395 paise ENR.
 * Even the cheapest action (SEND_REMINDER) yields a negative ENR (-34 paise).
-* **Decision: NO_ACTION (STOP).** RevPilot also knows when the economically correct recovery action is no action.
+* **Decision:** NO_ACTION (STOP). RevPilot knows when the economically correct recovery action is no action.
 
 ## Benchmark 
 *(Tested on 5 independent synthetic seed populations of 100 cases)*
@@ -61,7 +79,7 @@ Across all seeds, RevPilot mathematically outperformed a `MAX_RETRY` strategy on
 
 ## Security & Reliability
 Built for enterprise stability:
-* **PostgreSQL Concurrency:** `FOR UPDATE SKIP LOCKED` guarantees webhook deduplication and prevents polling race conditions.
+* **PostgreSQL Concurrency:** `FOR UPDATE SKIP LOCKED` enforces webhook deduplication and prevents polling race conditions.
 * **Strict State Machine:** Adheres to deterministic `OPEN -> ASSESSING -> EXECUTING -> WAITING_FOR_OUTCOME -> RECOVERED` transitions.
 * **Feature Schema Validation:** The ML Predictor will refuse to load if the runtime `metadata.json` schema version mismatches the trained artifact (`MODEL_SCHEMA_MISMATCH`).
 
@@ -106,7 +124,7 @@ We engineered RevPilot under the constraint that financial execution requires ex
 * **Why deterministic logic surrounds ML:** ML is excellent at guessing probabilities but terrible at strict accounting rules. By isolating the LightGBM model so it *only* emits probabilities, we ensure the Economic Engine and Policy Manager have final, mathematical veto power over execution.
 * **Why LLMs were excluded from execution:** Generative AI suffers from hallucinations and non-determinism. While LLMs are great for generating email copy, putting them in the critical path of routing funds or calculating costs is an unacceptable compliance risk. 
 * **Why LightGBM over Deep Learning:** We tested neural architectures, but tabular financial data with categorical features (merchant type, action type) strongly favors gradient boosting. LightGBM provided significantly faster inference and explicit feature importance (SHAP) for auditability.
-* **Why PostgreSQL locking matters:** Webhooks can be delivered out of order or duplicated. We intentionally rely on explicit SELECT ... FOR UPDATE SKIP LOCKED transaction bounds and deterministic state machines (OPEN -> ASSESSING -> EXECUTING) to guarantee idempotent execution. 
+* **Why PostgreSQL locking matters:** Webhooks can be delivered out of order or duplicated. We intentionally rely on explicit SELECT ... FOR UPDATE SKIP LOCKED transaction bounds and deterministic state machines (OPEN -> ASSESSING -> EXECUTING) to ensure idempotent execution. 
 * **Why synthetic data:** We do not possess proprietary Razorpay merchant datasets. To rigorously prove the architecture, we built a causally-structured world model to generate synthetic telemetry.
 * **What failed during development:** We initially attempted to compute Expected Net Return (ENR) *inside* the ML model (predicting direct monetary yield). This failed because it conflated merchant policy changes (cost of SMS) with customer behavior changes. We had to architecturally split (recovery)$ from (economic)$.
 * **What we intentionally did not build:** We did not build a generic workflow builder. Razorpay Agent Studio already solves workflow generation. We built the *economic stopping rule* missing from those workflows.

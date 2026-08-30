@@ -30,7 +30,7 @@ This index maps every major architectural claim in RevPilot directly to the sour
 ### RELIABILITY
 * **Claim:** The system protects against duplicate webhooks and polling race conditions.
 * **File:** [`backend/test_concurrency.py`](file:///C:/Users/abhay/OneDrive/Documents/Projects/RevPilot/backend/test_concurrency.py)
-* **Proof:** Implements an `asyncio.gather` race condition test. Proves that PostgreSQL `FOR UPDATE SKIP LOCKED` guarantees only one worker can process a case or webhook concurrently.
+* **Proof:** Implements an `asyncio.gather` race condition test. Proves that PostgreSQL `FOR UPDATE SKIP LOCKED` ensures only one worker can process a case or webhook concurrently.
 
 ### BENCHMARK
 * **Claim:** RevPilot produces higher Net Recovered Revenue by avoiding wasteful interventions.
