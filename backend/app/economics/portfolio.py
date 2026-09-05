@@ -10,6 +10,16 @@ class PortfolioResult:
     expected_net_recovery: int
     marginal_efficiency: float
 
+@dataclass
+class ShadowPriceResult:
+    base_budget: int
+    base_enr: int
+    increment: int
+    relaxed_budget: int
+    relaxed_enr: int
+    marginal_budget_value: float
+    additional_enr: int
+
 class RecoveryPortfolioOptimizer:
     """
     Solves the Multiple-Choice Knapsack Problem (MCKP) for revenue recovery.
@@ -17,6 +27,27 @@ class RecoveryPortfolioOptimizer:
     selects at most one action per case to maximize total ENR without exceeding the budget.
     """
     
+    def evaluate_shadow_price(self, cases_dict: Dict[str, List[ActionEvaluation]], budget_paise: int, increment_paise: int) -> ShadowPriceResult:
+        """
+        Calculates the Discrete Marginal Budget Value (Shadow Price) of relaxing the recovery budget.
+        Evaluates the existing objective delta without altering the base portfolio allocation.
+        """
+        base_result = self.optimize(cases_dict, budget_paise)
+        relaxed_result = self.optimize(cases_dict, budget_paise + increment_paise)
+        
+        additional_enr = relaxed_result.expected_net_recovery - base_result.expected_net_recovery
+        mbv = additional_enr / increment_paise if increment_paise > 0 else 0.0
+        
+        return ShadowPriceResult(
+            base_budget=budget_paise,
+            base_enr=base_result.expected_net_recovery,
+            increment=increment_paise,
+            relaxed_budget=budget_paise + increment_paise,
+            relaxed_enr=relaxed_result.expected_net_recovery,
+            marginal_budget_value=mbv,
+            additional_enr=additional_enr
+        )
+        
     def optimize(self, cases_dict: Dict[str, List[ActionEvaluation]], budget_paise: int) -> PortfolioResult:
         # Pre-process: for each case, filter out ENR <= 0 or cost > budget.
         item_groups = []

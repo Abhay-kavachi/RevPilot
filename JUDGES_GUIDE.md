@@ -14,4 +14,4 @@ This guide maps common Razorpay evaluator questions directly to the verifiable e
 | **Policy Enforcement** | Externalized configuration decoupling financial rules from core code. | [`backend/policy.json`](file:///C:/Users/abhay/OneDrive/Documents/Projects/RevPilot/backend/policy.json) |
 
 ### Note on Verification
-If you run `pytest .` in the `backend/` directory, the architectural boundaries are verified automatically (58 tests passed; 1 Razorpay external-integration test skipped because the Test Mode environment limit was reached). 
+If you run `pytest .` in the `backend/` directory, the architectural boundaries are verified automatically (73 tests passed; 1 Razorpay external-integration test skipped because the Test Mode environment limit was reached). 

@@ -79,12 +79,29 @@ def main():
     # We will limit the budget to 300 paise. This forces the engine to skip the 'attractive_but_skipped' case
     # or downgrade an action to save budget for something with a higher ENR/cost ratio.
     budget_paise = 300 
+    increment_paise = 100 # Evaluate a 1 INR budget increment
     
     optimizer = RecoveryPortfolioOptimizer()
     result = optimizer.optimize(cases_dict, budget_paise)
     
     print()
     print_portfolio(result, budget_paise)
+
+    # 11/10 Extension: Shadow Price (Discrete Marginal Budget Value)
+    print("=========================================================================================")
+    print("DISCRETE MARGINAL BUDGET VALUE (SHADOW PRICE)")
+    print("=========================================================================================")
+    
+    try:
+        shadow_result = optimizer.evaluate_shadow_price(cases_dict, budget_paise, increment_paise)
+        print(f"Recovery Budget               : {shadow_result.base_budget / 100:,.2f} INR")
+        print(f"Expected Net Recovery         : {shadow_result.base_enr / 100:,.2f} INR")
+        print(f"Marginal Budget Value         : {shadow_result.marginal_budget_value:,.2f} INR per 1 INR")
+        print(f"Additional Budget Opportunity : {shadow_result.additional_enr / 100:,.2f} INR expected net recovery")
+    except Exception as e:
+        print(f"Shadow Price evaluation failed (Non-fatal): {str(e)}")
+    
+    print("=========================================================================================\n")
 
 if __name__ == "__main__":
     main()
