@@ -22,9 +22,9 @@ RevPilot breaks revenue recovery into four distinct economic decisions:
 **"How much economic advantage is sufficient to justify a probability sacrifice?"**
 When two actions are economically near-equivalent, RevPilot can prefer a materially higher recovery probability rather than sacrificing substantial recovery certainty for a negligible ENR gain.
 **Example:**
-* 55% recovery probability → ₹13.20 ENR
-* 71% recovery probability → ₹13.10 ENR
-Under explicit merchant policy, the 71% action is selected because the ₹0.10 ENR difference is within the allowed economic tolerance (₹1.00), while the probability improvement (16pp) is material (>10pp).
+* 56.1% recovery probability → ₹13.20 ENR
+* 73.6% recovery probability → ₹13.10 ENR
+Under explicit merchant policy, the 73.6% action is selected because the ₹0.10 ENR difference is within the scale-aware economic tolerance (max of ₹0.10 absolute or 1% of ENR ≈ ₹0.13), while the probability improvement (~17.5pp) is material (>10pp).
 *Note: The probability comparison has a known action-specific calibration limitation.*
 
 ### 3. Portfolio Economics
