@@ -41,14 +41,18 @@ def mock_policy_file(tmp_path):
           "CREATE_PAYMENT_LINK": 0,
           "SEND_REMINDER": 0,
           "NO_ACTION": 0
+        },
+        "probability_preserving_guardrail": {
+          "enabled": True,
+          "minimum_absolute_tolerance_paise": 10,
+          "relative_tolerance": 0.01,
+          "probability_threshold": 0.10
         }
       },
       "recovery_policy": {
         "version": "test-1.0",
         "max_attempts": 2,
-        "min_expected_value": 0.0,
-        "allowed_actions": ["CREATE_PAYMENT_LINK", "SEND_REMINDER", "NO_ACTION"],
-        "stop_threshold": 0.0
+        "allowed_actions": ["CREATE_PAYMENT_LINK", "SEND_REMINDER", "NO_ACTION"]
       }
     }
     

@@ -11,6 +11,12 @@ class AgeAdjustment(BaseModel):
     max_days: int
     multiplier: float
 
+class ProbabilityGuardrailConfig(BaseModel):
+    enabled: bool
+    minimum_absolute_tolerance_paise: int
+    relative_tolerance: float
+    probability_threshold: float
+
 class EconomicPolicy(BaseModel):
     version: str
     base_probabilities: Dict[str, float]
@@ -20,6 +26,7 @@ class EconomicPolicy(BaseModel):
     action_costs_paise: Dict[str, StrictInt]
     action_frictions_paise: Dict[str, StrictInt]
     action_risks_paise: Dict[str, StrictInt]
+    probability_preserving_guardrail: ProbabilityGuardrailConfig
     
     def get_base_probability(self, action_type: str) -> float:
         if action_type not in self.base_probabilities:
@@ -53,9 +60,7 @@ class EconomicPolicy(BaseModel):
 class RecoveryPolicy(BaseModel):
     version: str
     max_attempts: int
-    min_expected_value: float
     allowed_actions: List[str]
-    stop_threshold: float
 
 class PolicyManager:
     def __init__(self, policy_path: str = None):

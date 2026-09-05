@@ -8,7 +8,7 @@ class PortfolioResult:
     skipped_cases: List[str]
     total_spend: int
     expected_net_recovery: int
-    marginal_efficiency: float
+    average_efficiency: float
 
 @dataclass
 class ShadowPriceResult:
@@ -111,5 +111,5 @@ class RecoveryPortfolioOptimizer:
             skipped_cases=skipped_cases,
             total_spend=total_spend,
             expected_net_recovery=max_enr,
-            marginal_efficiency=efficiency
+            average_efficiency=efficiency
         )

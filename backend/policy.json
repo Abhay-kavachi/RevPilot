@@ -47,19 +47,23 @@
       "SEND_REMINDER": 0,
       "ESCALATE_TO_SUPPORT": 0,
       "NO_ACTION": 0
+    },
+    "probability_preserving_guardrail": {
+      "enabled": true,
+      "minimum_absolute_tolerance_paise": 10,
+      "relative_tolerance": 0.01,
+      "probability_threshold": 0.10
     }
   },
   "recovery_policy": {
     "version": "1.0.0",
     "max_attempts": 3,
-    "min_expected_value": 0.0,
     "allowed_actions": [
       "CREATE_PAYMENT_LINK",
       "RETRY_PAYMENT",
       "SEND_REMINDER",
       "ESCALATE_TO_SUPPORT",
       "NO_ACTION"
-    ],
-    "stop_threshold": 0.0
+    ]
   }
 }

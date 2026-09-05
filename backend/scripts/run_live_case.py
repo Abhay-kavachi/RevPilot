@@ -15,6 +15,8 @@ def print_evals(evaluations, title):
     for ev in evaluations:
         prob_str = f"{ev.success_probability:.4f}"
         print(f"{ev.action_type:<25} | {prob_str:<12} | {ev.expected_value:<12} | {ev.cost:<6} | {ev.friction:<8} | {ev.risk:<6} | {ev.final_enr:<12} | {ev.probability_source}")
+        if ev.guardrail_applied:
+            print(f"  -> [GUARDRAIL TRIGGERED]: {ev.guardrail_reason}")
     print("=====================================================================================================================\n")
 
 def main():

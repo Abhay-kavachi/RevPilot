@@ -18,17 +18,26 @@ RevPilot breaks revenue recovery into four distinct economic decisions:
 * **Mechanism:** Action-conditioned ML recovery probability + Expected Net Return (ENR).
 * **Execution:** Calculates the cost, friction, and risk of candidate actions and compares them to the expected value.
 
-### 2. Portfolio Economics
+### 2. Policy Controls (Guardrails)
+**"How much economic advantage is sufficient to justify a probability sacrifice?"**
+When two actions are economically near-equivalent, RevPilot can prefer a materially higher recovery probability rather than sacrificing substantial recovery certainty for a negligible ENR gain.
+**Example:**
+* 55% recovery probability → ₹13.20 ENR
+* 71% recovery probability → ₹13.10 ENR
+Under explicit merchant policy, the 71% action is selected because the ₹0.10 ENR difference is within the allowed economic tolerance (₹1.00), while the probability improvement (16pp) is material (>10pp).
+*Note: The probability comparison has a known action-specific calibration limitation.*
+
+### 3. Portfolio Economics
 **"Where should limited recovery budget be spent?"**
 * **Mechanism:** Multiple-Choice Knapsack Problem (MCKP) dynamic programming.
 * **Execution:** If a merchant limits their recovery budget, RevPilot globally optimizes interventions across a batch of cases to maximize total yield, actively downgrading or dropping cases to conserve capital.
 
-### 3. Constraint Economics
+### 4. Constraint Economics
 **"What additional expected recovery would more budget unlock?"**
 * **Mechanism:** Discrete Marginal Budget Value (Shadow Price).
 * **Execution:** Calculates the exact objective delta `(Z(B + Δ) - Z(B)) / Δ` using actual optimizer objective values at a tested budget increment. It answers whether relaxing the budget is economically worthwhile.
 
-### 4. Temporal Economics [RESEARCH / DEMO SIMULATION]
+### 5. Temporal Economics [RESEARCH / DEMO SIMULATION]
 **"Should we act now, or is waiting economically better?"**
 * **Mechanism:** Deterministic temporal decision simulation.
 * **Execution:** Compares the ENR of immediate intervention against the expected value of waiting for synthetic organic recovery, penalized by delay risk. Demonstrates `ACT_NOW`, `DEFER`, or `STOP`. *(Note: This is a read-only research simulation, not a production execution feature).*

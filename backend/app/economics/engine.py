@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.core.policy import policy_manager
 
 from app.economics.ml_predictor import ml_predictor
@@ -13,8 +13,9 @@ class ActionEvaluation(BaseModel):
     risk: int
     final_enr: int
     probability_source: str
-    is_eligible: bool = True
-    provenance: Dict[str, Any] = {}
+    provenance: Dict[str, Any] = Field(default_factory=dict)
+    guardrail_applied: bool = False
+    guardrail_reason: Optional[str] = None
 
 class EconomicEngine:
     """
@@ -97,4 +98,70 @@ class EconomicEngine:
                 provenance=provenance
             ))
             
-        return sorted(evaluations, key=lambda x: x.final_enr, reverse=True)
+        sorted_evals = sorted(evaluations, key=lambda x: x.final_enr, reverse=True)
+        return self._apply_probability_guardrail(sorted_evals)
+
+    def _apply_probability_guardrail(self, evaluations: List[ActionEvaluation]) -> List[ActionEvaluation]:
+        """
+        Applies the Probability-Preserving Economic Guardrail.
+        Re-ranks the evaluations list if a near-optimal economic action has a materially
+        higher recovery probability.
+        """
+        if not evaluations:
+            return evaluations
+            
+        guardrail_config = self.policy.probability_preserving_guardrail
+        if not guardrail_config.enabled:
+            return evaluations
+
+        # The pure ENR winner is the first element
+        a_star = evaluations[0]
+        
+        # Only operate on actions that have a positive expected net return
+        if a_star.final_enr <= 0:
+            return evaluations
+
+        enr_max = a_star.final_enr
+        
+        # Scale-aware effective tolerance
+        abs_tol = guardrail_config.minimum_absolute_tolerance_paise
+        rel_tol = int(guardrail_config.relative_tolerance * abs(enr_max))
+        effective_tolerance = max(abs_tol, rel_tol)
+        
+        tau_p = guardrail_config.probability_threshold
+
+        # Find the near-optimal set
+        a_near = [
+            a for a in evaluations
+            if a.final_enr > 0 and (enr_max - a.final_enr) <= effective_tolerance
+        ]
+
+        if not a_near:
+            return evaluations
+            
+        # Find the candidate with the highest recovery probability within A_near
+        # Break ties using final_enr (descending)
+        best_candidate = max(a_near, key=lambda a: (a.success_probability, a.final_enr))
+
+        # Check if the best candidate materially beats a_star's probability
+        delta_p = best_candidate.success_probability - a_star.success_probability
+        
+        if best_candidate != a_star and delta_p >= tau_p:
+            # Guardrail triggered
+            delta_enr = enr_max - best_candidate.final_enr
+            best_candidate.guardrail_applied = True
+            best_candidate.guardrail_reason = (
+                f"Probability Guardrail: Chosen over pure ENR winner ({a_star.action_type}) "
+                f"because probability is {delta_p * 100:.1f}pp higher, "
+                f"while ENR sacrifice ({delta_enr / 100:.2f} INR) is within "
+                f"policy tolerance ({effective_tolerance / 100:.2f} INR)."
+            )
+            
+            # Re-rank: move best_candidate to the front
+            new_evals = [best_candidate]
+            for a in evaluations:
+                if a != best_candidate:
+                    new_evals.append(a)
+            return new_evals
+
+        return evaluations
